@@ -2,7 +2,30 @@
 
 Build and install packages for Void Linux, from the abyss-packages unofficial repo
 
-**Usage**
+### Why and how
+
+The `xbps-src` package builder for voidlinux is a really powerfull tool, but it only works with
+a single repository, the void-packages repo. The only straigntforward way to add software to repo
+provide it in an accessible way to the users is to send PRs and be accepted.
+That created a well-maintained and curated repository by the distribution developers but impedes
+the inclusion of software that the same maintainers decide - for entirelly valid reasons - to not accept.
+
+`xut` tries to provide a solution for users that need more packages that cannot be provided in the 
+official repos. It clones both the void-packages and abyss-packages repository, adds the templates from the abyss-packages repo
+and installs sw with a single command.
+
+
+### Todo
+
+- [ ] Deal with shlibs in order to package more complex sw or modified packages from the upstream repos.
+- [ ] Implement a way to handle upgrades gracefully.
+- [ ] Search for a practical way to enable more than one unofficial repos
+- [ ] ... (suggestions are welcome, working code even more welcome)
+
+
+
+### Usage
+
 ```shell
 xut [options]
 ```
@@ -10,9 +33,9 @@ xut [options]
 |OPTIONS | Info |
 | ---- | ---- |
 | -s | sync |
-| -i <package1,package2> | build and install a (comma-seperated list of packages) |
+| -i <package1,package2> | build and install a (comma-seperated) list of packages. |
 | -l | Keep a log file under $HOME. |
-| -z | Remove the bootstrap packages and the masterdir with <xbps-src zap>.  |
-| -c | Clean the masterdir with <xbps-src clean>. |
+| -z | Remove the bootstrap packages and the masterdir with `xbps-src zap`.  |
+| -c | Clean the masterdir with `xbps-src clean`. |
 | -s | Sync the repos. |
 | -h | Display this usage information. |

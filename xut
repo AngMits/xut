@@ -78,6 +78,7 @@ integrate_xtra_templates() {
 	cp -r "$conf_default_workdir"/abyss/* "$conf_default_workdir"/default/srcpkgs/ || error Cannot copy templates...
 }
 
+
 xbps_bootstrap() {
 	cd "$conf_default_workdir"/default - && ./xbps-src binary-bootstrap
 }
@@ -101,6 +102,7 @@ install_packages() {
 }
 
 main() {
+#program execution starts here
 info Full comand given is [xut "$showargs"].
 #Get the configuration from the conf file if it exists.
 if [ -e "$XDG_CONFIG_HOME"/.xutconf ]; then
@@ -123,7 +125,9 @@ for i in abyss default; do
 		retrieve_repos; fi
 done
 [ "$op_sync" = 1 ] && sync_repos
+#Boostrap always is wastefull, needs to be checked.
 xbps_bootstrap
+#all template dirs are copied 
 integrate_xtra_templates
 [ -n "$packages" ] && install_packages
 }
