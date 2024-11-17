@@ -1,4 +1,7 @@
 #!/bin/sh
+#This script is released under the conditions of the MIT License
+#SPDX short identifier:MIT
+
 #setting default configuration
 conf_default_repo=https://github.com/void-linux/void-packages.git
 conf_extra_repo=https://codeberg.org/mobinmob/abyss-packages.git
