@@ -8,11 +8,11 @@
 ## FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 ## You should have received a copy of the GNU General Public License along with
 ## this program. If not, see <https://www.gnu.org/licenses/>.
-###SPDX short identifier: GPL-2.0-only
+### SPDX short identifier: GPL-2.0-only
 
 #setting default configuration
 conf_default_repo=https://github.com/void-linux/void-packages.git
-conf_extra_repo=https://codeberg.org/mobinmob/abyss-packages.git
+conf_repo_abyss_packages=https://codeberg.org/mobinmob/abyss-packages.git
 conf_default_workdir="${HOME}/.xut"
 #colours
 green=$(tput setaf 2)
@@ -60,7 +60,7 @@ retrieve_repos() {
 	git clone --depth 1  "$conf_default_repo" "$conf_default_workdir"/default || error Cannot clone the upstream repo.
 	info Succesfully cloned the upstream repo into "${conf_default_workdir}"!
 	info Cloning Cloning the extra repo...
-	git clone --depth 1  "$conf_extra_repo"  "$conf_default_workdir"/abyss||  error Cannot clone the extra repo.
+	git clone --depth 1  "$conf_repo_abyss_packages"  "$conf_default_workdir"/abyss-packages||  error Cannot clone the extra repo.
 	info Succesfully cloned the upstream repo into "${conf_default_workdir}"!
 } 
 sync_repos() {
@@ -69,13 +69,13 @@ sync_repos() {
 	git pull "$conf_default_repo" master || error Cannot sync to the the upstream repo.
 	info Succesfully synced with the upstream repo into "${conf_default_workdir}"!
 	info Syncing latest changes from the extra repo...
-	cd "$conf_default_workdir"/abyss || Cannot change to the "$conf_default_workdir"/default directory
-	git pull "$conf_extra_repo" main || error Cannot sync to the the extra repo. 
+	cd "$conf_default_workdir"/abyss-packages || Cannot change to the "$conf_default_workdir"/default directory
+	git pull "$conf_repo_abyss_packages" main || error Cannot sync to the the extra repo. 
 	info Succesfully synced with the abyss-packages repo into "${conf_default_workdir}"!
 }
 
 integrate_xtra_templates() {
-	cp -r "$conf_default_workdir"/abyss/* "$conf_default_workdir"/default/srcpkgs/ || error Cannot copy templates...
+	cp -r "$conf_default_workdir"/abyss-packages/* "$conf_default_workdir"/default/srcpkgs/ || error Cannot copy templates...
 }
 
 
@@ -119,14 +119,14 @@ fi
 [ "$op_clean" = 1 ] && xbps_clean
 [ "$op_zap" = 1 ] && xbps_zap
 # intialise if needed (first run or after zaping)
-for i in abyss default; do 
+for i in abyss-packages default; do 
 	if [ ! -d "$conf_default_workdir"/"$i"/.git ]; then
 		rm -rf "${conf_default_workdir:-${HOME}/.xut/}*"
 		retrieve_repos; fi
 done
 [ "$op_sync" = 1 ] && sync_repos
-#Boostrap always is wastefull, needs to be checked.
-xbps_bootstrap
+#Boostrap if masterdir is not populated
+[ -e "$conf_default_workdir"/default/masterdir-$(xbps-uhelper arch)/usr/bin/xbps-install ] && xbps_bootstrap
 #all template dirs are copied 
 integrate_xtra_templates
 [ -n "$packages" ] && install_packages

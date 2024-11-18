@@ -14,6 +14,12 @@ the inclusion of software that the same maintainers decide - for entirelly valid
 official repos. It clones both the void-packages and abyss-packages repository, adds the templates from the abyss-packages repo
 and installs sw with a single command.
 
+### Install and setup
+1. Download, the `xut` script into the path and make it executable.
+2. Use the xutconf.sample if you want to modify configuration.
+3. The script depends on `sh`,`xbps`, `git` and the `xi` tool from the *xtools* package which requires a working sudo configuration.
+
+
 
 ### Todo
 
