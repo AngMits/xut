@@ -98,6 +98,7 @@ install_packages() {
 	for i in $package_list; do 
 		cd "$conf_default_workdir"/default -  && ./xbps-src pkg "$i"
 	done
+	# shellcheck disable=SC2086
 	xi $package_list
 }
 
@@ -105,6 +106,7 @@ main() {
 #program execution starts here
 info Full comand given is [xut "$showargs"].
 #Get the configuration from the conf file if it exists.
+# shellcheck disable=SC1091
 if [ -e "$XDG_CONFIG_HOME"/.xutconf ]; then
 	. "$XDG_CONFIG_HOME"/.xutconf
 	info Using configuration from "$XDG_CONFIG_HOME"/.xutconf.
@@ -126,7 +128,7 @@ for i in abyss-packages default; do
 done
 [ "$op_sync" = 1 ] && sync_repos
 #Boostrap if masterdir is not populated
-[ -e "$conf_default_workdir"/default/masterdir-$(xbps-uhelper arch)/usr/bin/xbps-install ] && xbps_bootstrap
+[ -e "$conf_default_workdir"/default/masterdir-"$(xbps-uhelper arch)"/usr/bin/xbps-install ] && xbps_bootstrap
 #all template dirs are copied 
 integrate_xtra_templates
 [ -n "$packages" ] && install_packages
