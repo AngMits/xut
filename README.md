@@ -2,6 +2,8 @@
 
 Build and install packages for Void Linux, from the abyss-packages unofficial repo
 
+**This script is in the alpha stage.**
+
 ### Why and how
 
 The `xbps-src` package builder for voidlinux is a really powerfull tool, but it only works with
