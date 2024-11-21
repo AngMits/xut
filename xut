@@ -1,4 +1,4 @@
-#!/bin/sh -x
+#!/bin/sh
 ## Copyright (c) 2024 by mobinmob  <mobinmob@disroot.org
 ##This program is free software: you can redistribute it and/or modify it under
 ## the terms of the GNU General Public License as published by the Free 
@@ -13,6 +13,8 @@
 #setting default configuration
 readonly default_repo=https://github.com/void-linux/void-packages.git
 readonly repo_abyss_packages=https://codeberg.org/mobinmob/abyss-packages.git
+default_repo_dir=$(printf '%s' "$default_repo" | awk -F"/" '{ print "/"$(NF-1)"/"$NF }'| tr "/" "_")
+readonly default_repo_dir
 conf_workdir="${HOME}/.xut"
 #colours
 green=$(tput setaf 2)
@@ -78,15 +80,15 @@ sync_repos() {
 }
 
 integrate_xtra_templates() {
-	cp -r "$conf_workdir"/_mobinmob_abyss-packages.git/* "$conf_workdir"/_void-linux_void-packages.git/srcpkgs/ || error Cannot copy templates...
+	cp -r "$conf_workdir"/_mobinmob_abyss-packages.git/* "$conf_workdir"/"$default_repo_dir"/ || error Cannot copy templates...
 }
 
 xbps_bootstrap() {
-	cd "$conf_workdir"/default - && ./xbps-src binary-bootstrap
+	cd "$conf_workdir"/"$default_repo_dir" - && ./xbps-src binary-bootstrap
 }
 
 xbps_src_command() {
-	cd "$conf_workdir"/default - && ./xbps-src "$op_xbps_src"
+	cd "$conf_workdir"/"$default_repo_dir" - && ./xbps-src "$op_xbps_src"
 }
 
 install_packages() {
@@ -94,7 +96,7 @@ install_packages() {
 	export package_list="$package_list"
 	[ -z "$package_list" ] && error Nothing to do...
 	for i in $package_list; do 
-		cd "$conf_workdir"/default -  && ./xbps-src pkg "$i"
+		cd "$conf_workdir"/"$default_repo_dir" -  && ./xbps-src pkg "$i"
 	done
 	# shellcheck disable=SC2086
 	xi $package_list
@@ -123,7 +125,7 @@ fi
 retrieve_repos
 [ "$op_sync" = 1 ] && sync_repos
 #Boostrap if masterdir is not populated
-[ -e "$conf_workdir"/default/masterdir-"$(xbps-uhelper arch)"/usr/bin/xbps-install ] && xbps_bootstrap
+[ -e "$conf_workdir"/"$default_repo_dir"/masterdir-"$(xbps-uhelper arch)"/usr/bin/xbps-install ] && xbps_bootstrap
 #all template dirs are copied 
 integrate_xtra_templates
 [ -n "$packages" ] && install_packages
