@@ -15,6 +15,7 @@ readonly default_repo=https://github.com/void-linux/void-packages.git
 readonly repo_abyss_packages=https://codeberg.org/mobinmob/abyss-packages.git
 default_repo_dir=$(printf '%s' "$default_repo" | awk -F"/" '{ print "/"$(NF-1)"/"$NF }'| tr "/" "_")
 readonly default_repo_dir
+additional_repos="$additional_repos $repo_abyss_packages"
 conf_workdir="${HOME}/.xut"
 #colours
 green=$(tput setaf 2)
@@ -30,9 +31,9 @@ op_log=0
 op_xbps_src=
 
 msg() {
-	if [ "${1}" = "error" ]; then printf "(!!) Error: %40s\n" "${red} $* ${reset_colour}" && exit 1 
-	elif [ "${1}" = "warn" ]; then printf "(~~) Warning: %40s\n" "${yellow} $* ${reset_colour}"
-	elif [ "${1}" = "info" ]; then printf "(~>) Info: %40s\n" "${green} $* ${reset_colour}"
+	if [ "${1}" = "error" ]; then printf "%s\n" "${red}(!!) Error: ${2} ${reset_colour}" && exit 1 
+	elif [ "${1}" = "warn" ]; then printf "%s\n" "${yellow}(~~) Warning: ${2} ${reset_colour}"
+	elif [ "${1}" = "info" ]; then printf "%s\n" "${green}(~>) Info:  ${2} ${reset_colour}"
 	 fi
 }
 
@@ -52,30 +53,47 @@ usage() {
 	EOH
 }
 
-retrieve_repos() {
-	repos_list="$default_repo $repo_abyss_packages"
-	for i in $repos_list; do 
-	repodir=$(printf '%s' "$i" | awk -F"/" '{ print "/"$(NF-1)"/"$NF }'| tr "/" "_")
-	if [ ! -d "$conf_workdir"/"$repodir" ]; then
-		msg info Cloning "$i"...
-		git clone --depth 1  "$i" "$conf_workdir"/"$repodir" || msg error Cannot clone "$i" repo.
-		msg info Succesfully cloned "$i"!
-	else msg warn "$i" already exist in "$repodir"! ;fi
+find_repodir() {
+	repodir=$(printf '%s' "${1}" | awk -F"/" '{ print "/"$(NF-1)"/"$NF }'| tr "/" "_")
+}
+include_additional_repos() {
+	repos_list="$default_repo"
+	for xtra_repo in $additional_repos; do
+		repos_list="$repos_list $xtra_repo"
 	done
+}
+
+retrieve_repos() {
+for repo in $repos_list; do
+	find_repodir "$repo"
+	if [ ! -d "$conf_workdir"/"$repodir" ]; then
+		msg info Cloning "$repo"...
+		git clone --depth 1  "$repo" "$conf_workdir"/"$repodir" || msg error "Cannot clone $repo repo."
+		msg info Succesfully cloned "$repo"!
+		else msg info "$repo already exist in $repodir !" ;fi
+done
 } 
+
+
 sync_repos() {
-	repos_list="$default_repo $repo_abyss_packages"
-	for i in $repos_list; do 
-	repodir=$(printf '%s' "$i" | awk -F"/" '{ print "/"$(NF-1)"/"$NF }'| tr "/" "_")
-	msg info  Syncing with "$i"...
-	cd "$conf_workdir"/"$repodir" || msg error Cannot change to the "$conf_workdir"/"$repodir"!
-	git pull "$i" "$(git branch --show-current)" || msg error Cannot sync to the "$i".
-	msg info Succesfully synced  "$i" repo!
+	for repo in $repos_list; do 
+		find_repodir "$repo"
+		msg info  "Syncing with $repo..."
+		cd "$conf_workdir"/"$repodir" || msg error "Cannot change to the $conf_workdir/$repodir ..."
+		git pull "$repo" "$(git branch --show-current)" || msg error "Cannot sync to the $repo ..."
+		msg info "Succesfully synced  $repo repo."
 	done
 }
 
 integrate_xtra_templates() {
-	cp -r "$conf_workdir"/_mobinmob_abyss-packages.git/* "$conf_workdir"/"$default_repo_dir"/srcpkgs/ || msg error Cannot copy templates...
+	for repo in $repos_list; do
+		if [ "$repo" != "$default_repo" ]; then
+		# shellcheck disable=SC2086
+		cp -r "$conf_workdir"/"$repodir"/* "$conf_workdir"/"$default_repo_dir"/srcpkgs/ \
+			|| msg error "Cannot copy templates from $repo... "
+		fi
+	done
+		
 }
 
 xbps_src_command() {
@@ -85,7 +103,7 @@ xbps_src_command() {
 install_packages() {
 	package_list="$(echo "$packages" | tr ',' ' ')"
 	export package_list="$package_list"
-	[ -z "$package_list" ] && error Nothing to do...
+	[ -z "$package_list" ] && msg error "Nothing to do..."
 	for i in $package_list; do 
 		cd "$conf_workdir"/"$default_repo_dir" -  && ./xbps-src pkg "$i"
 	done
@@ -96,28 +114,29 @@ install_packages() {
 main() {
 #program execution starts here
 # Check for root
-[ "$(id -u)" -eq 0 ] && msg error Please run the program as a user!
-msg info Full comand given is [xut "$showargs"].
+[ "$(id -u)" -eq 0 ] && msg error "Please run the program as a user!"
+msg info "Full comand given is [xut $showargs]."
 #Get the configuration from the conf file if it exists.
 # shellcheck disable=SC1091
 if [ -e "$XDG_CONFIG_HOME"/.xutconf ]; then
 	. "$XDG_CONFIG_HOME"/.xutconf
-	msg info Using configuration from "$XDG_CONFIG_HOME"/.xutconf.
+	msg info "Using configuration from $XDG_CONFIG_HOME/.xutconf."
 elif [ -e "$HOME"/.xutconf ]; then
 	. "$HOME"/.xutconf
-	msg info Using configuration from "$HOME"/.xutconf.
-else msg warn Using the default configuration.
+	msg info "Using configuration from $HOME/.xutconf."
+else msg info "Using the default configuration."
 fi
 # Check for needed dirs.
 [ ! -e "$conf_workdir/logs" ] && mkdir -pv "$conf_workdir/logs" 
 # clean or zap repos before other ops
 [ -n "$op_xbps_src" ] && xbps_src_command
 # Clone repos if needed 
+include_additional_repos
 retrieve_repos
 [ "$op_sync" = 1 ] && sync_repos
 #Enable building restricted packages
 if grep -q "XBPS_ALLOW_RESTRICTED=yes" "$conf_workdir"/"$default_repo_dir"/etc/conf ; then
-	msg info Building restricted packages is enabled!
+	msg info "Building restricted packages is enabled!"
 else printf "%s" "XBPS_ALLOW_RESTRICTED=yes" "\n" >> "$conf_workdir"/"$default_repo_dir"/etc/conf;
 fi
 #Boostrap if masterdir is not populated
