@@ -126,7 +126,7 @@ install_packages() {
 	## Boostrap if masterdir is not populated
 	if [ ! -e "$conf_workdir"/"$default_repo_dir"/masterdir-"$(xbps-uhelper arch)"/usr/bin/xbps-install ];
 	then cd "$conf_workdir"/"$default_repo_dir" || msg error "Cannot change to $conf_workdir"/"$default_repo_dir"
-		./xbps-src binarybootstrap || msg error "Cannot bootstrap!"; fi
+		./xbps-src binary-bootstrap || msg error "Cannot bootstrap!"; fi
 	# Start package build and installation
 	[ -z "$packages" ] && msg warn "No packages for installation..." && exit 0
 	package_list="$(echo "$packages" | tr ',' ' ')"
