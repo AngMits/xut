@@ -31,9 +31,12 @@ op_log=0
 op_xbps_src=
 
 msg() {
+	# Use colour-coded messages for informational, warning, and error output
+	#${1} is the message type, ${2} is the message content
 	if [ "${1}" = "error" ]; then printf "%s\n" "${red}(!!) Error: ${2} ${reset_colour}" && exit 1 
 	elif [ "${1}" = "warn" ]; then printf "%s\n" "${yellow}(~~) Warning: ${2} ${reset_colour}"
 	elif [ "${1}" = "info" ]; then printf "%s\n" "${green}(~>) Info:  ${2} ${reset_colour}"
+	elif [ "${1}" = "debug" ]; then printf "%s\n" "(<>) Debug : ${2}" >> /dev/stderr
 	else printf "%s\n" "${red}(!!) Error: ${1} is not recognised for msg() ${reset_colour}" && exit 1 
 	fi
 }
@@ -56,6 +59,7 @@ usage() {
 }
 
 find_repodir() {
+	#define a proper (no slashes...) directory name for each remote git repo
 	repodir=$(printf '%s' "${1}" | awk -F"/" '{ print "/"$(NF-1)"/"$NF }'| tr "/" "_")
 }
 
@@ -73,7 +77,7 @@ for repo in $repos_list; do
 		msg info "Cloning $repo..."
 		git clone --depth 1  "$repo" "$conf_workdir"/"$repodir" || msg error "Cannot clone $repo repo."
 		msg info "Succesfully cloned $repo !"
-	else msg info "$repo already exists in $repodir !" ;fi
+	else msg debug "$repo already exists in $repodir !" ;fi
 done
 } 
 
@@ -87,28 +91,42 @@ if [ "$op_sync" = 1 ]; then
 		git pull "$repo" "$(git branch --show-current)" || msg error "Cannot sync to the $repo ..."
 		msg info "Succesfully synced  $repo repo."
 	done
-else msg info "Not syncing repos..."; fi
+else msg debug "Not syncing repos..."; fi
 }
 
 integrate_xtra_templates() {
 	for repo in $repos_list; do
 		if [ "$repo" != "$default_repo" ]; then
 		# shellcheck disable=SC2086
-		cp -r "$conf_workdir"/"$repodir"/* "$conf_workdir"/"$default_repo_dir"/srcpkgs/ \
-			|| msg error "Cannot copy templates from $repo... "
+		find_repodir "$repo"
+			for dir in "$conf_workdir"/"$repodir"/*/; do
+				if [ -e  "$conf_workdir"/"$repodir"/"$dir"/template ] ; then
+				cp -r "$conf_workdir"/"$repodir"/"$dir" "$conf_workdir"/"$default_repo_dir"/srcpkgs/ \
+				|| msg error "Cannot copy template $dir from $repo... " ; fi
+			done 
 		fi
 	done
 		
 }
 
 xbps_src_command() {
-	if [ -n "$op_xbps_src" ]; then
-		cd "$conf_workdir"/"$default_repo_dir" || msg error "Cannot change directory into $default_repo_dir"
-		./xbps-src clean || msg error "Cannot execute <xbps-src clean>."
-		./xbps-src "$op_xbps_src" || msg error "Cannot execute <xbps-src $op_xbps_src>"; fi
+	cd "$conf_workdir"/"$default_repo_dir" || msg error "Cannot change directory into $default_repo_dir"
+	./xbps-src clean || msg error "Cannot execute <xbps-src clean>."
+	./xbps-src "$op_xbps_src" || msg error "Cannot execute <xbps-src $op_xbps_src>"
 }
 
 install_packages() {
+	# Prepare for installation
+	## Enable building restricted packages
+	if grep -q "XBPS_ALLOW_RESTRICTED=yes" "$conf_workdir"/"$default_repo_dir"/etc/conf ; then
+		msg debug "Building restricted packages is enabled!"
+	else printf "%s" "XBPS_ALLOW_RESTRICTED=yes" "\n" >> "$conf_workdir"/"$default_repo_dir"/etc/conf;
+	fi
+	## Boostrap if masterdir is not populated
+	if [ ! -e "$conf_workdir"/"$default_repo_dir"/masterdir-"$(xbps-uhelper arch)"/usr/bin/xbps-install ];
+	then cd "$conf_workdir"/"$default_repo_dir" || msg error "Cannot change to $conf_workdir"/"$default_repo_dir"
+		./xbps-src binarybootstrap || msg error "Cannot bootstrap!"; fi
+	# Start package build and installation
 	[ -z "$packages" ] && msg warn "No packages for installation..." && exit 0
 	package_list="$(echo "$packages" | tr ',' ' ')"
 	export package_list="$package_list"
@@ -138,20 +156,11 @@ else msg info "Using the default configuration."
 fi
 # Check for needed dirs.
 [ ! -e "$conf_workdir/logs" ] && mkdir -pv "$conf_workdir/logs" 
-xbps_src_command
+[ -n "$op_xbps_src" ] && xbps_src_command
 include_additional_repos
 # Clone repos if needed
 retrieve_repos
 sync_repos
-#Enable building restricted packages
-if grep -q "XBPS_ALLOW_RESTRICTED=yes" "$conf_workdir"/"$default_repo_dir"/etc/conf ; then
-	msg info "Building restricted packages is enabled!"
-else printf "%s" "XBPS_ALLOW_RESTRICTED=yes" "\n" >> "$conf_workdir"/"$default_repo_dir"/etc/conf;
-fi
-
-#Boostrap if masterdir is not populated
-if [ ! -e "$conf_workdir"/"$default_repo_dir"/masterdir-"$(xbps-uhelper arch)"/usr/bin/xbps-install ];
-then  op_xbps_src="binary-bootstrap" && xbps_src_command; fi
 #all template dirs are copied 
 integrate_xtra_templates
 install_packages
