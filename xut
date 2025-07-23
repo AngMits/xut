@@ -15,7 +15,6 @@ readonly default_repo=https://github.com/void-linux/void-packages.git
 readonly repo_abyss_packages=https://codeberg.org/mobinmob/abyss-packages.git
 default_repo_dir=$(printf '%s' "$default_repo" | awk -F"/" '{ print "/"$(NF-1)"/"$NF }'| tr "/" "_")
 readonly default_repo_dir
-additional_repos="$additional_repos $repo_abyss_packages"
 conf_workdir="${HOME}/.xut"
 #colours
 green=$(tput setaf 2)
@@ -66,9 +65,11 @@ find_repodir() {
 
 include_additional_repos() {
 	repos_list="$default_repo"
+	# shellcheck disable=SC2154
 	for xtra_repo in $additional_repos; do
 		repos_list="$repos_list $xtra_repo"
 	done
+	repos_list="$repos_list $repo_abyss_packages" 
 }
 
 retrieve_repos() {
@@ -97,17 +98,13 @@ else msg debug "Not syncing repos..."; fi
 
 integrate_xtra_templates() {
 	for repo in $repos_list; do
+		find_repodir "$repo"
 		if [ "$repo" != "$default_repo" ]; then
 		# shellcheck disable=SC2086
-		find_repodir "$repo"
-			for dir in "$conf_workdir"/"$repodir"/*/; do
-				if [ -e  "$conf_workdir"/"$repodir"/"$dir"/template ] ; then
-				cp -r "$conf_workdir"/"$repodir"/"$dir" "$conf_workdir"/"$default_repo_dir"/srcpkgs/ \
-				|| msg error "Cannot copy template $dir from $repo... " ; fi
-			done 
+		cp -r "$conf_workdir"/"$repodir"/* "$conf_workdir"/"$default_repo_dir"/srcpkgs/ \
+			|| msg error "Cannot copy templates from $repo... "
 		fi
 	done
-		
 }
 
 xbps_src_command() {
