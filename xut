@@ -21,6 +21,7 @@ conf_workdir="${HOME}/.xut"
 green=$(tput setaf 2)
 red=$(tput setaf 1)
 yellow=$(tput setaf 3)
+fade=$(tput dim)
 reset_colour=$(tput sgr0)
 #define a log filename
 conf_log_dir="$conf_workdir/logs"
@@ -36,7 +37,7 @@ msg() {
 	if [ "${1}" = "error" ]; then printf "%s\n" "${red}(!!) Error: ${2} ${reset_colour}" && exit 1 
 	elif [ "${1}" = "warn" ]; then printf "%s\n" "${yellow}(~~) Warning: ${2} ${reset_colour}"
 	elif [ "${1}" = "info" ]; then printf "%s\n" "${green}(~>) Info:  ${2} ${reset_colour}"
-	elif [ "${1}" = "debug" ]; then printf "%s\n" "(<>) Debug : ${2}" >> /dev/stderr
+	elif [ "${1}" = "debug" ]; then printf "%s\n" "$fade(<>) Debug : ${2} ${reset_colour}"
 	else printf "%s\n" "${red}(!!) Error: ${1} is not recognised for msg() ${reset_colour}" && exit 1 
 	fi
 }
