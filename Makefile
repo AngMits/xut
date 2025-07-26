@@ -14,4 +14,4 @@ uninstall:
 #	rm -f $(DESTDIR)$(MANDIR)/man1/xut.1
 	rm -f $(DESTDIR)$(DOCDIR)/xut/xutconf.sample
 
-.PHONY: all install uninstall
+.PHONY: install uninstall

@@ -15,7 +15,7 @@ readonly default_repo=https://github.com/void-linux/void-packages.git
 readonly repo_abyss_packages=https://codeberg.org/mobinmob/abyss-packages.git
 default_repo_dir=$(printf '%s' "$default_repo" | awk -F"/" '{ print "/"$(NF-1)"/"$NF }'| tr "/" "_")
 readonly default_repo_dir
-${conf_workdir:="${HOME}"/.xut}
+[ -z "$conf_workdir" ] && conf_workdir="$HOME"/.xut
 #colours
 green=$(tput setaf 2)
 red=$(tput setaf 1)
@@ -53,7 +53,7 @@ usage() {
 	 -s	Sync the repos.
 	 -l	Keep a log file under $conf_log_dir.
 	 -h	Display this usage information.
-	 -b Build a list of (comma-seperated) packages.
+	 -b	<package1,package2> Build a list of (comma-seperated) packages.
 	 -i	<package1,package2>	Build and install a list of (comma-seperated) packages.
 	 -x	Give xbps-src commands.
 	 
