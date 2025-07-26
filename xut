@@ -28,6 +28,7 @@ log_file="$conf_log_dir/$(basename "$0")_$(date +"%Y%m%d_%T")".log
 readonly log_file
 #set default operation variables
 op_log=0
+op_build=
 op_install=
 op_xbps_src=
 
@@ -128,6 +129,8 @@ build_packages() {
 	then cd "$conf_workdir"/"$default_repo_dir" || msg error "Cannot change to $conf_workdir"/"$default_repo_dir"
 		./xbps-src binary-bootstrap || msg error "Cannot bootstrap!"; fi
 	# Start package build
+	if [ -n "$op_build" ] && [ -n "$op_install" ]; then
+		msg error " -b and -i arguments cannot be used at the same time"; fi
 	[ -z "$packages" ] && msg warn "No packages for building..." && exit 0
 	package_list="$(echo "$packages" | tr ',' ' ')"
 	export package_list="$package_list"
@@ -182,7 +185,7 @@ while getopts "slhb:i:x:" OPTION; do
 		s) op_sync=1;;
 		l) op_log=1;;
 		h) usage ; exit 0;;
-		b) packages="$OPTARG";;
+		b) packages="$OPTARG" && op_build=1;;
 		i) packages="$OPTARG" && op_install=1;;
 		x) op_xbps_src="$OPTARG";;
 		*) usage ; exit 0;;
