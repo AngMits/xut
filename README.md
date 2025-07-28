@@ -58,7 +58,12 @@ xut [options]
 xut -b package1,package2
 ```
 
-- Sync repos and install packages with logging enabled: 
+- Sync repos and install packages: 
+```shell
+xut -si package1,package2
+```
+
+- Use the above command with logging enabled:
 ```shell
 xut -sli package1,package2
 ```
