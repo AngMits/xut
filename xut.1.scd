@@ -35,6 +35,10 @@ additional software for a void-linux installation.
 	
 *-x* 
 	Executed xbps-src commands.
+	
+*-q* <query>
+	Search for <query> in available templates.
+	
 
 ## Notes for cli arguments
 	- If *-x* is used, *-b* and *-p* will be ignored.

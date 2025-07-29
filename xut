@@ -59,6 +59,7 @@ usage() {
 	 -b	<package1,package2> Build a list of (comma-seperated) packages.
 	 -i	<package1,package2>	Build and install a list of (comma-seperated) packages.
 	 -x	Give xbps-src commands.
+	 -q <query>	Search for <query> in available templates.
 	 
 	EOH
 }
