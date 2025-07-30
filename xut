@@ -153,9 +153,8 @@ xbps_src_command() {
 
 search_xtra_templates() {
 	# Search available templates.
-	if [ -n "$op_query" ] && [ -n "$template_query" ]; then
+	if [ "$op_query" -eq 1 ] && [ -n "$template_query" ]; then
 	msg info "Searching for <$template_query> ..."
-	else msg debug "No template search requested.." && return ; fi
 	for repo in $repos_list; do
 		find_repodir "$repo"
 		if [ "$repo" != "$default_repo" ]; then
@@ -169,7 +168,8 @@ search_xtra_templates() {
 		msg info "Search results :"
 		printf "%s\n" "${green}$query_results${reset_colour}"
 		exit 0
-	else msg warn "No templates found!" && exit 0 ; fi		
+	else msg warn "No templates found!" && exit 0 ; fi	
+	else msg debug "No template search requested.." && return ; fi
 }
 
 build_packages() {
@@ -211,18 +211,18 @@ install_packages() {
 }
 
 main() {
-# Check for root
-[ "$(id -u)" -eq 0 ] && msg error "Please run the program as a user!"
-msg info "Full comand given is [xut $showargs]."
-[ -n "$op_xbps_src" ] && xbps_src_command
-include_additional_repos
-# Clone repos if needed
-retrieve_repos
-sync_repos
-search_xtra_templates
-#all template dirs are copied 
-integrate_xtra_templates
-install_packages
+	# Check for root
+	[ "$(id -u)" -eq 0 ] && msg error "Please run the program as a user!"
+	msg info "Full comand given is [xut $showargs]."
+	[ -n "$op_xbps_src" ] && xbps_src_command
+	include_additional_repos
+	# Clone repos if needed
+	retrieve_repos
+	sync_repos
+	search_xtra_templates
+	#all template dirs are copied 
+	integrate_xtra_templates
+	install_packages
 }
 
 #Keep only 5 log files, including the current one.
