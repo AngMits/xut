@@ -128,7 +128,7 @@ sync_repos() {
 }
 
 integrate_xtra_templates() {
-	# Merge all avsailable template directories to
+	# Merge all available template directories to
 	# the srcpkgs/ of the default repo, later list
 	# entries take precedence (override previous).
 	for repo in $repos_list; do

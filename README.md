@@ -18,7 +18,7 @@ official repos. It clones both the void-packages and abyss-packages repository (
 
 ### Install and setup
 
-1. Download, the `xut` script into the path and make it executable.
+1. Clone this repo, change into the `xut/` subdirectory and install using the Makefile.
 2. Use the xutconf.sample if you want to modify configuration.
 3. The script depends on:
    - `sh` and the  posix userland,
