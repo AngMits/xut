@@ -12,10 +12,12 @@
 
 
 msg() {
+	
 	# Use colour-coded messages for informational, warning, and error output
 	#${1} is the message type, ${2} is the message content
 	#needs to be here, all messages depend on it.
 	#colours
+	
 	green=$(tput setaf 2)
 	red=$(tput setaf 1)
 	yellow=$(tput setaf 3)
@@ -32,6 +34,7 @@ msg() {
 }
 
 #Get the configuration from the conf file if it exists.
+
 #shellcheck disable=SC1091
 if [ -e "$XDG_CONFIG_HOME"/.xutconf ]; then
 	. "$XDG_CONFIG_HOME"/.xutconf
@@ -43,18 +46,25 @@ else msg info "Using the default configuration."
 fi
 
 # Setting default configuration
+
 readonly default_repo=https://github.com/void-linux/void-packages.git
 readonly repo_abyss_packages=https://codeberg.org/mobinmob/abyss-packages.git
 default_repo_dir=$(printf '%s' "$default_repo" | awk -F"/" '{ print "/"$(NF-1)"/"$NF }'| tr "/" "_")
 readonly default_repo_dir
 [ -z "$conf_workdir" ] && conf_workdir="$HOME/.xut"
+
 #define a log filename
+
 conf_log_dir="$conf_workdir/logs"
 log_file="$conf_log_dir/$(basename "$0")_$(date +"%Y%m%d_%T")".log
 readonly log_file
+
 # Check for needed dirs.
+
 [ ! -e "$conf_log_dir" ] && mkdir -p "$conf_log_dir"
+
 #set default operation variables
+
 op_log=0
 op_query=
 op_build=
@@ -64,7 +74,9 @@ op_xbps_src=
 
 
 usage() {
+
 	#Display basic tui information
+
 	cat <<-EOH
 	Usage: $(basename "$0") [options]
 
@@ -84,14 +96,19 @@ usage() {
 }
 
 find_repodir() {
+
 	#define a proper (no slashes...) directory name for a remote git repo
+
 	repodir=$(printf '%s' "${1}" | awk -F"/" '{ print "/"$(NF-1)"/"$NF }'| tr "/" "_")
 }
 
 include_additional_repos() {
+
 	# Add all repos to a list, repo_abyss_package is last and its contents
 	# superseed the others.
+
 	repos_list="$default_repo"
+
 	# shellcheck disable=SC2154
 	for xtra_repo in $additional_repos; do
 		repos_list="$repos_list $xtra_repo"
@@ -100,7 +117,9 @@ include_additional_repos() {
 }
 
 retrieve_repos() {
+
 	# Clone every configured repo if needed.
+
 	msg info "Cloning repos..."
 	for repo in $repos_list; do
 		find_repodir "$repo"
@@ -114,7 +133,9 @@ retrieve_repos() {
 
 
 sync_repos() {
-	# Sync
+
+	# Sync every configured repo.
+
 	if [ "$op_sync" = 1 ]; then
 		msg info "Syncing repos..."
 		for repo in $repos_list; do 
@@ -128,9 +149,11 @@ sync_repos() {
 }
 
 integrate_xtra_templates() {
+	
 	# Merge all available template directories to
 	# the srcpkgs/ of the default repo, later list
 	# entries take precedence (override previous).
+	
 	for repo in $repos_list; do
 		find_repodir "$repo"
 		if [ "$repo" != "$default_repo" ]; then
@@ -144,7 +167,9 @@ integrate_xtra_templates() {
 }
 
 xbps_src_command() {
+	
 	# Give xbps-src commands directly to the merged repository.
+	
 	cd "$conf_workdir"/"$default_repo_dir" || msg error "Cannot change directory into $default_repo_dir"
 	./xbps-src clean || msg error "Cannot execute <xbps-src clean>."
 	./xbps-src "$op_xbps_src" || msg error "Cannot execute <xbps-src $op_xbps_src>"
@@ -152,7 +177,9 @@ xbps_src_command() {
 }
 
 search_xtra_templates() {
+	
 	# Search available templates.
+	
 	if [ "$op_query" -eq 1 ] && [ -n "$template_query" ]; then
 	msg info "Searching for <$template_query> ..."
 	for repo in $repos_list; do
@@ -173,19 +200,25 @@ search_xtra_templates() {
 }
 
 build_packages() {
+	
 	# Prepare for installation
 	## Enable building restricted packages
+	
 	if grep -q "XBPS_ALLOW_RESTRICTED=yes" "$conf_workdir"/"$default_repo_dir"/etc/conf ; then
 		msg debug "Building restricted packages is enabled!"
 	else 
 		msg info "Enable building restricted packages!"
 		printf "%s" "XBPS_ALLOW_RESTRICTED=yes" "\n" >> "$conf_workdir"/"$default_repo_dir"/etc/conf;
 	fi
+	
 	## Boostrap if masterdir is not populated
+	
 	if [ ! -e "$conf_workdir"/"$default_repo_dir"/masterdir-"$(xbps-uhelper arch)"/usr/bin/xbps-install ];
 	then cd "$conf_workdir"/"$default_repo_dir" || msg error "Cannot change to $conf_workdir"/"$default_repo_dir"
 		./xbps-src binary-bootstrap || msg error "Cannot bootstrap!"; fi
+	
 	# Start package build
+	
 	if [ -n "$op_build" ] && [ -n "$op_install" ]; then
 		msg error " -b and -i arguments cannot be used at the same time"; fi
 	if [ -n "$op_build" ] && [ -z "$packages" ]; then \
@@ -206,26 +239,34 @@ build_packages() {
 
 install_packages() {
 	build_packages
+	
 	# shellcheck disable=SC2086
 	if [ -n "$packages" ] && xi $package_list; then msg info " Package(s) $packages installed." ;fi
 }
 
 main() {
+	
 	# Check for root
+	
 	[ "$(id -u)" -eq 0 ] && msg error "Please run the program as a user!"
 	msg info "Full comand given is [xut $showargs]."
 	[ -n "$op_xbps_src" ] && xbps_src_command
 	include_additional_repos
+	
 	# Clone repos if needed
+	
 	retrieve_repos
 	sync_repos
 	search_xtra_templates
+	
 	#all template dirs are copied 
+	
 	integrate_xtra_templates
 	install_packages
 }
 
 #Keep only 5 log files, including the current one.
+
 find "$conf_log_dir" -name "xut_*.log" -print | tail -n+5 | xargs rm -f
 
 while getopts "slhb:i:x:q:" OPTION; do
@@ -240,7 +281,9 @@ while getopts "slhb:i:x:q:" OPTION; do
 		*)usage ; exit 0;;
 	esac
 done
+
 # Capture all the arguments given
+
 showargs="$(printf "%s" "$*")"
 shift $((OPTIND - 1))
 [ "$OPTIND" -eq 1 ] && usage && exit
