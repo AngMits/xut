@@ -174,7 +174,8 @@ search_xtra_templates() {
 	
 	# Search available templates.
 	
-	[ -n "$op_query" ] && 	msg info "Searching for <$template_query> ..."
+	if [ -n "$op_query" ]; then
+		msg info "Searching for <$template_query> ..."
 	for repo in $repos_list; do
 		find_repodir "$repo"
 		if [ "$repo" != "$default_repo" ]; then
@@ -189,7 +190,8 @@ search_xtra_templates() {
 		for result in ${query_results}; do 
 		printf "%s\n"  "${green}(*)${reset_colour} ${bold}${result}${reset_colour}"; done
 		exit 0
-	else msg warn "No templates found!" && exit 0 ; fi		
+	else msg warn "No templates found!" && exit 0 ; fi
+	else msg debug "No template search requested.." && return ; fi	
 }
 
 build_packages() {
