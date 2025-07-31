@@ -22,11 +22,12 @@ msg() {
 	red=$(tput setaf 1)
 	yellow=$(tput setaf 3)
 	fade=$(tput dim)
+	bold=$(tput bold)
 	reset_colour=$(tput sgr0)
 	
-	if [ "${1}" = "error" ]; then printf "%s\n" "${red}(!!) Error: ${2} ${reset_colour}" && exit 1 
-	elif [ "${1}" = "warn" ]; then printf "%s\n" "${yellow}(~~) Warning: ${2} ${reset_colour}"
-	elif [ "${1}" = "info" ]; then printf "%s\n" "${green}(~>) Info:  ${2} ${reset_colour}"
+	if [ "${1}" = "error" ]; then printf "%s\n" "${red}${bold}(!!) Error:${reset_colour} ${bold}${2}${reset_colour}" && exit 1 
+	elif [ "${1}" = "warn" ]; then printf "%s\n" "${yellow}${bold}(~~) Warning:${reset_colour} ${bold}${2} ${reset_colour}"
+	elif [ "${1}" = "info" ]; then printf "%s\n" "${green}${bold}(~>) Info:${reset_colour}  ${bold}${2} ${reset_colour}"
 	elif [ "${1}" = "debug" ]; then 
 	[ "$op_log" -eq 1 ] && printf "%s\n" "$fade(<>) Debug : ${2} ${reset_colour}"
 	else printf "%s\n" "${red}(!!) Error: ${1} is not recognised for msg() ${reset_colour}" && exit 1 
@@ -51,17 +52,13 @@ readonly default_repo=https://github.com/void-linux/void-packages.git
 readonly repo_abyss_packages=https://codeberg.org/mobinmob/abyss-packages.git
 default_repo_dir=$(printf '%s' "$default_repo" | awk -F"/" '{ print "/"$(NF-1)"/"$NF }'| tr "/" "_")
 readonly default_repo_dir
-[ -z "$conf_workdir" ] && conf_workdir="$HOME/.xut"
-
+[ -z "$conf_workdir" ] && conf_workdir="$HOME"/.xut
 #define a log filename
-
 conf_log_dir="$conf_workdir/logs"
 log_file="$conf_log_dir/$(basename "$0")_$(date +"%Y%m%d_%T")".log
-readonly log_file
-
 # Check for needed dirs.
-
 [ ! -e "$conf_log_dir" ] && mkdir -p "$conf_log_dir"
+readonly log_file
 
 #set default operation variables
 
@@ -72,11 +69,10 @@ op_install=
 op_xbps_src=
 
 
-
 usage() {
-
+	
 	#Display basic tui information
-
+	
 	cat <<-EOH
 	Usage: $(basename "$0") [options]
 
@@ -96,19 +92,18 @@ usage() {
 }
 
 find_repodir() {
-
+	
 	#define a proper (no slashes...) directory name for a remote git repo
-
+	
 	repodir=$(printf '%s' "${1}" | awk -F"/" '{ print "/"$(NF-1)"/"$NF }'| tr "/" "_")
 }
 
 include_additional_repos() {
-
+	
 	# Add all repos to a list, repo_abyss_package is last and its contents
 	# superseed the others.
-
+	
 	repos_list="$default_repo"
-
 	# shellcheck disable=SC2154
 	for xtra_repo in $additional_repos; do
 		repos_list="$repos_list $xtra_repo"
@@ -117,9 +112,9 @@ include_additional_repos() {
 }
 
 retrieve_repos() {
-
+	
 	# Clone every configured repo if needed.
-
+	
 	msg info "Cloning repos..."
 	for repo in $repos_list; do
 		find_repodir "$repo"
@@ -131,11 +126,10 @@ retrieve_repos() {
 	done
 } 
 
-
 sync_repos() {
-
+	
 	# Sync every configured repo.
-
+	
 	if [ "$op_sync" = 1 ]; then
 		msg info "Syncing repos..."
 		for repo in $repos_list; do 
@@ -180,8 +174,7 @@ search_xtra_templates() {
 	
 	# Search available templates.
 	
-	if [ -n "$op_query" ] && [ -n "$template_query" ]; then
-	msg info "Searching for <$template_query> ..."
+	[ -n "$op_query" ] && 	msg info "Searching for <$template_query> ..."
 	for repo in $repos_list; do
 		find_repodir "$repo"
 		if [ "$repo" != "$default_repo" ]; then
@@ -193,10 +186,10 @@ search_xtra_templates() {
 	query_results=$(echo "$template_list" | tr " " "\n" | awk /"$template_query"/)
 	if [ -n "$query_results" ]; then 
 		msg info "Search results :"
-		printf "%s\n" "${green}$query_results${reset_colour}"
+		for result in ${query_results}; do 
+		printf "%s\n"  "${green}(*)${reset_colour} ${bold}${result}${reset_colour}"; done
 		exit 0
-	else msg warn "No templates found!" && exit 0 ; fi	
-	else msg debug "No template search requested.." && return ; fi
+	else msg warn "No templates found!" && exit 0 ; fi		
 }
 
 build_packages() {
@@ -221,10 +214,6 @@ build_packages() {
 	
 	if [ -n "$op_build" ] && [ -n "$op_install" ]; then
 		msg error " -b and -i arguments cannot be used at the same time"; fi
-	if [ -n "$op_build" ] && [ -z "$packages" ]; then \
-		 msg warn "No packages for building..."
-		 exit 0
-	fi
 	package_list="$(echo "$packages" | tr ',' ' ')"
 	export package_list="$package_list"
 	for package in $package_list; do 
@@ -239,30 +228,29 @@ build_packages() {
 
 install_packages() {
 	build_packages
-	
 	# shellcheck disable=SC2086
 	if [ -n "$packages" ] && xi $package_list; then msg info " Package(s) $packages installed." ;fi
 }
 
 main() {
-	
-	# Check for root
-	
-	[ "$(id -u)" -eq 0 ] && msg error "Please run the program as a user!"
-	msg info "Full comand given is [xut $showargs]."
-	[ -n "$op_xbps_src" ] && xbps_src_command
-	include_additional_repos
-	
-	# Clone repos if needed
-	
-	retrieve_repos
-	sync_repos
-	search_xtra_templates
-	
-	#all template dirs are copied 
-	
-	integrate_xtra_templates
-	install_packages
+
+# Check for root
+
+[ "$(id -u)" -eq 0 ] && msg error "Please run the program as a user!"
+msg info "Full comand given is [xut $showargs]."
+[ -n "$op_xbps_src" ] && xbps_src_command
+include_additional_repos
+
+# Clone repos if needed
+
+retrieve_repos
+sync_repos
+search_xtra_templates
+
+#all template dirs are copied 
+
+integrate_xtra_templates
+install_packages
 }
 
 #Keep only 5 log files, including the current one.
