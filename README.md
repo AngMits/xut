@@ -24,6 +24,7 @@ official repos. It clones both the void-packages and abyss-packages repository (
    - `sh` and the  posix userland,
    - `xbps`,
    - `git`,
+   - `mktemp`,
    - the `xi` tool from the _xtools_ package which requires a working `sudo` configuration,
    - the `tput` tool from _ncurses_.
 
