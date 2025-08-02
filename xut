@@ -89,6 +89,7 @@ usage() {
 	 -i	<package1,package2>	Build and install a list of (comma-seperated) packages.
 	 -x	Give xbps-src commands.
 	 -q <query>	Search for <query> in available templates.
+	 -u	Update packages.
 	 
 	EOH
 }
@@ -147,7 +148,7 @@ sync_repos() {
 merge_xtra_templates() {
 
 	# Merge all available template directories to
-	# the srcpkgs/ of the default repo, later list
+	# a temporary directory, later list
 	# entries take precedence (override previous).
 	
 	for repo in $repos_list; do
@@ -166,6 +167,10 @@ merge_xtra_templates() {
 }
 
 integrate_xtra_templates() {
+	
+	# Copy merged directory contents to the srcpkgs/ of the
+	# void-packages clone.
+	
 	merge_xtra_templates
 	cp -r "$merged_dir"/* "$conf_workdir/$default_repo_dir/srcpkgs/" || msg error "Cannot copy templates to srcpkgs"
 }
@@ -200,6 +205,10 @@ search_xtra_templates() {
 }
 
 discover_updates() {
+
+	# Compare versions of available templates to these of installed
+	# packages and create a list of packages to update.
+	
 	for template in $template_list; do
 		 if xbps-query -p pkgname "$template" > /dev/null ; then
 		 	templates_to_check="$templates_to_check $template"; fi ; done
@@ -212,6 +221,9 @@ discover_updates() {
 }
 
 update_packages() {
+
+	# Build and install available updates.
+	
 	if [ "$op_update" = 1 ]; then
 		discover_updates
 		if [ -n "$templates_to_update" ]
@@ -222,6 +234,7 @@ update_packages() {
 		install_packages
 	fi
 }
+
 build_packages() {
 	
 	# Prepare for installation
