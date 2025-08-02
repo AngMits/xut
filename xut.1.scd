@@ -6,7 +6,7 @@ XUT(1)
 
 # SYNOPSIS
 
-*xut* [-lsh] [-b _packages1,package2,..._ | -i _packages1,package2,..._] [-x <xbps-src command>]
+*xut* [-lshu] [-b _packages1,package2,..._ | -i _packages1,package2,..._] [-x <xbps-src command>] [-q <query>]
 
 # DESCRIPTION
 
