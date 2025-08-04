@@ -276,6 +276,8 @@ build_packages() {
 	
 	if [ -n "$packages" ] && [ "$op_install" -eq 0 ]; then 
 		msg info "Succesfully build $packages!"
+		msg info "Packages are in $conf_workdir/$default_repo_dir/hostdir/.
+You can install them with xbps or by running <xut -i>."
 		exit 0 ; fi
 }
 

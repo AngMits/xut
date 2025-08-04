@@ -5,7 +5,7 @@
 .nh
 .ad l
 .\" Begin generated content:
-.TH "XUT" "1" "2025-08-02"
+.TH "XUT" "1" "2025-08-04"
 .PP
 .SH NAME
 .PP
@@ -13,7 +13,7 @@
 .PP
 .SH SYNOPSIS
 .PP
-\fBxut\fR [-lshu] [-b \fIpackages1,package2,.\&.\&.\&\fR | -i \fIpackages1,package2,.\&.\&.\&\fR] [-x <xbps-src command>] [-q <query>]
+\fBxut\fR [-ls] [-h] [-u ]  [-b \fIpackages1,package2,.\&.\&.\&\fR | -i \fIpackages1,package2,.\&.\&.\&\fR] [-x <xbps-src command>] [-q <query>]
 .PP
 .SH DESCRIPTION
 .PP
@@ -68,11 +68,11 @@ Update packages.\&
 .RS 4
 .PD 0
 .IP \(bu 4
-If \fB-x\fR is used, \fB-b\fR and \fB-p\fR will be ignored.\&
+If \fB-x\fR is used, \fB-b\fR, \fB-i\fR and \fB-q\fR will be ignored.\&
 .IP \(bu 4
 \fB-b\fR and \fB-i\fR cannot be used in the same command.\&
 .IP \(bu 4
-\fB-l\fR and \fB-s\fR are meant to be used with the other arguments (\fB-x,\fR, \fB-b\fR and \fB-i\fR).\&
+\fB-l\fR and \fB-s\fR are meant to be used with some arguments (\fB-x,\fR, \fB-b\fR  \fB-i\fR and \fB-u\fR).\&
 .IP \(bu 4
 \fB-l\fR enables "debug" messages in the output, which becomes more verbose.\&
 .PD
@@ -101,7 +101,7 @@ Build packages (without installing them):
 .PD
 .RE
 .RE
-\&'\&xut -b package1,package2'\&	
+\fB'\&xut -b package1,package2'\&\fR	
 .RS 4
 .PD 0
 .IP \(bu 4
@@ -110,7 +110,7 @@ Sync repos and install packages:
 .PD
 .RE
 .RE
-\&'\&xut -si package1,package2'\&	
+\fB'\&xut -si package1,package2'\&\fR	
 .RS 4
 .PD 0
 .IP \(bu 4
@@ -119,7 +119,7 @@ Use the above command with logging enabled:
 .PD
 .RE
 .RE
-\&'\&xut -sli package1,package2'\&		
+\fB'\&xut -sli package1,package2'\&\fR		
 .RS 4
 .PD 0
 .IP \(bu 4
@@ -128,7 +128,7 @@ Execute an xbps-command in the merged repo:
 .PD
 .RE
 .RE
-\&'\&xut -x <command>'\&
+\fB'\&xut -x <command>'\&\fR
 .RS 4
 .PD 0
 .IP \(bu 4
@@ -137,7 +137,7 @@ Update packages after syncing repos:
 .PD
 .RE
 .RE
-\&'\&xut -su'\&
+\fB'\&xut -su'\&\fR
 .PP
 .PP
 .SH AUTHORS
