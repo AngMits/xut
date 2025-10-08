@@ -163,16 +163,27 @@ merge_xtra_templates() {
 	for repo in $repos_list; do
 		find_repodir "$repo"
 		if [ "$repo" != "$default_repo" ]; then
-			for dir in "$conf_workdir"/"$repodir"/* ; do
-				if [ -e "$dir"/template ]; then
-					# shellcheck disable=SC2086
-					cp -r "$dir" "$merged_dir" \
-					 || msg error "Cannot merge templates from $repo... " ; fi
-			done
+			if [ -d "$conf_workdir"/"$repodir"/srcpkgs ]; then
+				# Search in srcpkgs
+				for dir in "$conf_workdir"/"$repodir"/srcpkgs/* ; do
+					if [ -e "$dir"/template ]; then
+						#shellcheck disable=SC2086
+						cp -r "$dir" "$merged_dir" || msg error "Cannot merge templates from $repo..."
+					fi
+				done
+			else
+				for dir in "$conf_workdir"/"$repodir"/* ; do
+					if [ -e "$dir"/template ]; then
+						# shellcheck disable=SC2086
+						cp -r "$dir" "$merged_dir" || msg error "Cannot merge templates from $repo... "
+					fi
+				done
+			fi
 		fi
 	done
 	for subdir in "$merged_dir"/* ; do
-		template_list="$template_list $(basename "$subdir")" ; done
+		template_list="$template_list $(basename "$subdir")"
+	done
 }
 
 integrate_xtra_templates() {
