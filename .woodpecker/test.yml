@@ -9,6 +9,7 @@ steps:
   "Install shellspec, pull xut and run tests":
     image: *void_image
     commands:
+      - xbps-install -S
       - xbps-install -y git
       - git clone https://github.com/shellspec/shellspec.git
       - ln -s /shellspec/shellspec /usr/local/bin
