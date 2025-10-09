@@ -15,4 +15,4 @@ steps:
       # - chmod +x /shellspec/shellspec
       - ln -s /shellspec/shellspec /usr/bin
       - cd spec
-      - shellspec
+      - . ../shellspec
