@@ -1,5 +1,5 @@
 variables:
-  - &void_image 'ghcr.io/void-linux/void-glibc-full:latest'
+  - &void_image 'ghcr.io/void-linux/void-glibc-busybox:latest'
 
 when:
   - branch: master
@@ -9,10 +9,7 @@ steps:
   "Install shellspec, pull xut and run tests":
     image: *void_image
     commands:
-      - xbps-install -S
-      - xbps-install -y git
-      - git clone --verbose https://github.com/shellspec/shellspec.git
-      # - chmod +x /shellspec/shellspec
-      - ln -s /shellspec/shellspec /usr/bin
-      - cd spec
-      - . ../shellspec
+      - wget https://github.com/shellspec/shellspec/archive/0.28.1.tar.gz
+      - tar xzvf 0.28.1.tar.gz
+      - ln -s /shellspec-0.28.1/shellspec /usr/local/bin
+      - shellspec
