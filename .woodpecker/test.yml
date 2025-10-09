@@ -13,6 +13,6 @@ steps:
       - xbps-install -y git
       - git clone --verbose https://github.com/shellspec/shellspec.git
       - chmod +x ./shellspec/shellspec
-      - ln -s ./shellspec/shellspec /usr/bin
+      - ln -s shellspec/shellspec /usr/bin
       - cd spec
       - shellspec
