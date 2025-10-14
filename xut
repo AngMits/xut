@@ -233,26 +233,6 @@ search_templates() {
 	fi
 }
 
-search_xtra_templates() {
-	# Search available templates.
-	if [ "$op_query" -eq 1 ]; then
-		msg info "Searching for <$template_query> ..."
-		query_results=$(echo "$template_list" | tr " " "\n" | awk /"$template_query"/)
-		if [ -n "$query_results" ]; then
-			msg info "Search results :"
-			for result in ${query_results}; do
-				printf "%s\n" "${green}(*)${reset_colour} ${bold}${result}${reset_colour}"
-			done
-			exit 0
-		else
-			msg warn "No templates found!" && exit 0
-		fi
-	# The following lets the programm continue if no query is actually needed.
-	else
-		msg debug "No template search requested.." && return
-	fi
-}
-
 discover_updates() {
 	# Compare versions of available templates to these of installed
 	# packages and create a list of packages to update.
@@ -349,7 +329,7 @@ main() {
 		update_template_list
 	fi
 	update_packages
-	search_xtra_templates
+	search_templates
 	install_packages
 }
 
