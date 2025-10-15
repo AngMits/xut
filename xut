@@ -97,6 +97,10 @@ usage() {
 		 -q <query> Search for <query> in available templates.
 		 -u         Update packages.
 
+	 The options are given together. For example in order to sync,
+	 enable loging and install  <package> the cli command is 
+	 <xut -sli package>.
+	 
 	EOH
 }
 
@@ -291,6 +295,12 @@ build_packages() {
 	fi
 	package_list="$(echo "$packages" | tr ',' ' ')"
 	export package_list="$package_list"
+	for argument in s l h b u i; do
+			first_arg=$(echo $package_list | awk {'print $1}')
+			if [ $argument = "$first_arg" ]; then
+				msg error "The *$argument* argument cannot be used in that place, a package name is expected!"
+			fi
+	done
 	for package in $package_list; do
 		cd "$conf_workdir"/"$default_repo_dir" && ./xbps-src pkg -E "$package"
 		cmd_status=$?
