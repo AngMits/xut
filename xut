@@ -109,6 +109,16 @@ find_repodir() {
 	repodir=$(printf '%s' "${1}" | awk -F"/" '{ print "/"$(NF-1)"/"$NF }' | tr "/" "_")
 }
 
+get_version() {
+	version=$(sed -n 's/^version=//p' ${1})
+	export version=$version
+}
+
+get_revision() {
+	revision=$(sed -n 's/^revision=//p' ${1})
+	export revision=$revision
+}
+
 include_additional_repos() {
 	# Add all repos to a list, repo_abyss_package is last and its contents superseed the others.
 	repos_list="$default_repo"
@@ -246,12 +256,11 @@ discover_updates() {
 		fi
 	done
 	for template in $templates_to_check; do
-		#shellcheck disable=SC1090
-		. "$merged_dir/$template/template"
-		#shellcheck disable=SC2154
-		template_version="$version"_"$revision"
-		installed_version=$(xbps-query -p pkgver "$template" | sed "s/$template-//g")
-		if [ "$installed_version" != "$template_version" ]; then
+		get_version "$merged_dir/$template"/template
+		get_revision "$merged_dir/$template"/template
+		template_version=$(echo "$version""$revision" | sed "s/[_.]//g")
+		installed_version=$(xbps-query -p pkgver "$template" | sed "s/$template-//g" |  sed "s/[_.]//g" )
+		if [ "$installed_version" -lt "$template_version" ]; then
 			templates_to_update="$templates_to_update $template"
 		fi
 	done
