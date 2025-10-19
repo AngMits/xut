@@ -109,6 +109,23 @@ find_repodir() {
 	repodir=$(printf '%s' "${1}" | awk -F"/" '{ print "/"$(NF-1)"/"$NF }' | tr "/" "_")
 }
 
+get_version() {
+	# Get the version from the template file given as ${1}
+	template_file="$1"
+	version=$(grep -E "^(version)[=]" "$template_file" | \
+			  sed -E 's/^(version)[=][[:space:]]*["]?([0-9.]+)["]?.*/\2/')
+	echo "$version"
+}
+
+get_revision() {
+	# Get the revision from the template file given as ${1}
+	template_file="$1"
+	revision=$(grep -E "^(revision)[=]" "$template_file" | \
+			   sed -E 's/^(revision)[=][[:space:]]*["]?([0-9]+)["]?.*/\2/')
+	echo "$revision"
+}
+
+
 include_additional_repos() {
 	# Add all repos to a list, repo_abyss_package is last and its contents superseed the others.
 	repos_list="$default_repo"
@@ -147,11 +164,9 @@ sync_repos() {
 			msg debug "Syncing with $repo..."
 			cd "$conf_workdir"/"$repodir" || msg error "Cannot change to the $conf_workdir/$repodir ..."
 			# Store current commit hash before pull
-			local before_hash
 			before_hash=$(git rev-parse HEAD)
 			git pull "$repo" "$(git branch --show-current)" || msg error "Cannot sync to the $repo ..."
 			# Check if anything changed after pull
-			local after_hash
 			after_hash=$(git rev-parse HEAD)
 			if [ "$before_hash" != "$after_hash" ]; then
 				op_changed=1
@@ -202,11 +217,11 @@ integrate_xtra_templates() {
 update_template_list() {
 	msg info "Creating list of templates (This will take a while)"
 	for subdir in "$conf_workdir/$default_repo_dir/srcpkgs/"* ; do
-		template_list="$template_list $(basename "$subdir")"
+		master_template_list="$master_template_list $(basename "$subdir")"
 	done
-	echo "$template_list" > "$conf_workdir"/template_list
+	echo "$master_template_list" > "$conf_workdir"/master_template_list
 	msg debug "Template merge completed."
-	msg info "Available templates: ${green}${bold}$(cat $conf_workdir/template_list | wc -w)${reset_colour}"
+	msg info "Available templates: ${green}${bold}$(cat $conf_workdir/master_template_list | wc -w)${reset_colour}"
 }
 
 xbps_src_command() {
@@ -221,7 +236,7 @@ search_templates() {
 	# Search available templates.
 	if [ "$op_query" -eq 1 ]; then
 		msg info "Searching for <$template_query> ..."
-		query_results=$(cat "$conf_workdir"/template_list | tr " " "\n" | awk /"$template_query"/)
+		query_results=$(cat "$conf_workdir"/master_template_list | tr " " "\n" | awk /"$template_query"/)
 		if [ -n "$query_results" ]; then
 			msg info "Search results :"
 			for result in ${query_results}; do
@@ -246,12 +261,11 @@ discover_updates() {
 		fi
 	done
 	for template in $templates_to_check; do
-		#shellcheck disable=SC1090
-		. "$merged_dir/$template/template"
-		#shellcheck disable=SC2154
-		template_version="$version"_"$revision"
-		installed_version=$(xbps-query -p pkgver "$template" | sed "s/$template-//g")
-		if [ "$installed_version" != "$template_version" ]; then
+		version=$(get_version "$merged_dir/$template"/template)
+		revision=$(get_revision "$merged_dir/$template"/template)
+		template_version=$(echo "$version""$revision" | sed "s/[_.]//g")
+		installed_version=$(xbps-query -p pkgver "$template" | sed "s/$template-//g" |  sed "s/[_.]//g" )
+		if [ "$installed_version" -lt "$template_version" ]; then
 			templates_to_update="$templates_to_update $template"
 		fi
 	done
@@ -335,9 +349,8 @@ main() {
 	retrieve_repos
 	sync_repos
 	integrate_xtra_templates
-	if [ "$op_changed" = 1 ]; then
-		update_template_list
-	fi
+	if [ ! -f "$conf_workdir"/master_template_list ]; then update_template_list && lists_updated=1; fi
+	if [ "$op_changed" = 1 ] && [ -z lists_updated ] ; then update_template_list ; fi
 	update_packages
 	search_templates
 	install_packages
