@@ -111,20 +111,17 @@ find_repodir() {
 
 get_version() {
 	# Get the version from the template file given as ${1}
-	template_file="$1"
-	version=$(grep -E "^(version)[=]" "$template_file" | \
-			  sed -E 's/^(version)[=][[:space:]]*["]?([0-9.]+)["]?.*/\2/')
-	echo "$version"
+	version=$(grep -E "^(version)[=]" ${1} | \
+	 sed -E 's/^(version)[=][[:space:]]*["]?([0-9.]+)["]?.*/\2/')
+	export version="$version"
 }
 
 get_revision() {
 	# Get the revision from the template file given as ${1}
-	template_file="$1"
-	revision=$(grep -E "^(revision)[=]" "$template_file" | \
-			   sed -E 's/^(revision)[=][[:space:]]*["]?([0-9]+)["]?.*/\2/')
-	echo "$revision"
+	revision=$(grep -E "^(revision)[=]" ${1} | \
+	 sed -E 's/^(revision)[=][[:space:]]*["]?([0-9]+)["]?.*/\2/')
+	export revision="$revision"
 }
-
 
 include_additional_repos() {
 	# Add all repos to a list, repo_abyss_package is last and its contents superseed the others.
