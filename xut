@@ -157,26 +157,23 @@ retrieve_repos() {
 
 sync_repos() {
 	# Sync every configured repo.
-	if [ "$op_sync" = 1 ]; then
-		msg info "Syncing repos..."
-		for repo in $repos_list; do
-			find_repodir "$repo"
-			msg debug "Syncing with $repo..."
-			cd "$conf_workdir"/"$repodir" || msg error "Cannot change to the $conf_workdir/$repodir ..."
-			# Store current commit hash before pull
-			before_hash=$(git rev-parse HEAD)
-			git pull "$repo" "$(git branch --show-current)" || msg error "Cannot sync to the $repo ..."
-			# Check if anything changed after pull
-			after_hash=$(git rev-parse HEAD)
-			if [ "$before_hash" != "$after_hash" ]; then
-				op_changed=1
-				msg debug "Changes detected in $repo repo."
-			fi
-			msg debug "Successfully synced $repo repo."
-		done
-	else
+	if [ "$op_sync" != 1 ]; then
 		msg debug "Not syncing repos..."
+		return
 	fi
+	msg info "Syncing repos..."
+	for repo in $repos_list; do
+		find_repodir "$repo"
+		msg debug "Syncing $repo..."
+		cd "$conf_workdir"/"$repodir" || msg error "Cannot change to $conf_workdir/$repodir"
+		current_branch=$(git branch --show-current 2>/dev/null)
+		if [ "$repo" = "$default_repo" ] && [ "$current_branch" != "master" ]; then
+			git checkout master || msg error "Cannot switch to master branch. Probably uncommitted changes on $current_branch?"
+			msg debug "Switched to master branch"
+		fi
+		git pull "$repo" "$current_branch" || msg error "Cannot sync to $repo"
+		msg info "Successfully synced $repo"
+	done
 }
 
 merge_xtra_templates() {
