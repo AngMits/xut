@@ -271,17 +271,29 @@ update_template_list() {
 }
 
 integrate_xtra_templates() {
+	if [ ! "$op_integrate" = 1 ]; then
+		msg debug "Integration not needed"
+		return
+	fi
 	# Copy merged directory contents to the srcpkgs/ of the void-packages clone.
 	merge_xtra_templates
-	cp -r "$merged_dir"/* "$conf_workdir/$default_repo_dir/srcpkgs/" || msg error "Cannot copy templates to srcpkgs"
-}
 
-update_template_list() {
-	msg info "Creating list of templates (This will take a while)"
-	master_template_list=$(find "$conf_workdir/$default_repo_dir/srcpkgs/" -maxdepth 1 -printf "%f ")
-	echo "$master_template_list" > "$conf_workdir"/master_template_list
-	msg debug "Template merge completed."
-	msg info "Available templates: ${green}${bold}$(cat $conf_workdir/master_template_list | wc -w)${reset_colour}"
+	# Remove original directories from void-packages to avoid stale patches
+	msg debug "Cleaning older package directories from void-packages"
+	for merged_pkg in "$merged_dir"/*; do
+		pkg_name=$(basename "$merged_pkg")
+		original_pkg="$conf_workdir/$default_repo_dir/srcpkgs/$pkg_name"
+		if [ -d "$original_pkg" ]; then
+			msg debug "Removing old package directory: $pkg_name"
+			rm -rf "$original_pkg" || msg error "Cannot remove $original_pkg"
+		fi
+	done
+
+	cp -r "$merged_dir"/* "$conf_workdir/$default_repo_dir/srcpkgs/" || msg error "Cannot copy templates to srcpkgs"
+
+	if [ "$op_changed" = 1 ]; then
+		update_template_list
+	fi
 }
 
 xbps_src_command() {
