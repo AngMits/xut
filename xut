@@ -342,24 +342,6 @@ search_templates() {
 	fi
 
 	# Update template_list if not exist
-	if [ ! -f "$conf_workdir"/template_list ]; then
-		update_template_list
-	fi
-
-	msg info "Searching for <$template_query> ..."
-	query_results=$(cat "$conf_workdir"/template_list | tr " " "\n" | awk /"$template_query"/)
-	if [ -n "$query_results" ]; then
-		msg info "Search results :"
-		for result in ${query_results}; do
-			printf "%s\n"  "${green}(*)${reset_colour} ${bold}${result}${reset_colour}"
-		done
-		exit 0
-	else
-		msg warn "No templates found!"
-		exit 0
-	fi
-
-	# Update template_list if not exist
 	if [ ! -f "$conf_workdir"/all_templates ]; then
 		update_template_list
 	fi
@@ -383,15 +365,15 @@ search_templates() {
 	done
 	if [ "$found" -eq 0 ]; then
 		msg warn "No templates found!"
+		exit 0
 	fi
-	exit 0
 }
 
 discover_updates() {
 	# Compare versions of available templates to these of installed
 	# packages and create a list of packages to update.
 	msg info "Checking for updatable packages..."
-	for template in $all_templates; do
+	for template in $xtra_templates; do
 		msg debug "Checking $template"
 		if xbps-query -p pkgname "$template" >/dev/null; then
 			templates_to_check="$templates_to_check $template"
@@ -400,9 +382,7 @@ discover_updates() {
 	for template in $templates_to_check; do
 		msg debug "Comparing versions of $template"
 		get_version "$merged_dir/$template"/template
-		#version="$version"
 		get_revision "$merged_dir/$template"/template
-		#revision="$revision"
 		template_version=$(echo "$version"_"$revision" | sed 's/\.//g')
 		installed_version=$(xbps-query -p pkgver "$template" | sed "s/$template-//g" |  sed 's/\.//g' )
 		if [ "$installed_version" -lt "$template_version" ]; then
@@ -489,8 +469,12 @@ main() {
 	retrieve_repos
 	sync_repos
 	integrate_xtra_templates
-	if [ ! -f "$conf_workdir"/master_template_list ]; then update_template_list && lists_updated=1; fi
-	if [ "$op_changed" = 1 ] && [ -z "$lists_updated" ] ; then update_template_list ; fi
+	if [ ! -f "$conf_workdir"/all_templates ]; then
+		update_template_list && lists_updated=1
+	fi
+	if [ "$op_changed" = 1 ] && [ -z "$lists_updated" ]; then
+		update_template_list
+	fi
 	update_packages
 	search_templates
 	install_packages
