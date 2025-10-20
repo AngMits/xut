@@ -200,7 +200,7 @@ should_copy_template() {
 	get_revision "$dest_template"
 	dest_revision=$revision
 
-	msg debug "  Comparing: src(${src_version}_${src_revision}) vs dest(${dest_version}_${dest_revision})"
+	msg debug "Comparing: src(${src_version}_${src_revision}) vs dest(${dest_version}_${dest_revision})"
 	# Remove dots from versions for integer comparison
 	src_version_int=$(echo "$src_version" | sed 's/\.//g')
 	dest_version_int=$(echo "$dest_version" | sed 's/\.//g')
@@ -230,6 +230,14 @@ should_copy_template() {
 }
 
 merge_xtra_templates() {
+	# First remove all templates lists
+	if [ "$op_log" != 1 ]; then
+		rm -f "$conf_workdir"/templates_*
+		rm -f "$conf_workdir"/*_templates
+	else
+		rm -v "$conf_workdir"/templates_* 2>/dev/null
+		rm -v "$conf_workdir"/*_templates 2>/dev/null
+	fi
 	# Merge all available template directories to a temporary directory,
 	# With intelligent version-based conflict resolution.
 	# Compare against final void-packages repo - only copy if extra repo has newer version.
@@ -251,6 +259,10 @@ merge_xtra_templates() {
 				# Check against final void-packages repo
 				dest_template="$conf_workdir/$default_repo_dir/srcpkgs/$template_name/template"
 
+				# Create xtra repo templates list
+				repo_name=$(basename "$repo")
+				echo "$template_name" >> "$conf_workdir/templates_$repo_name"
+
 				if should_copy_template "$source_template" "$dest_template"; then
 					# Remove from merged_dir if it already exists
 					if [ -d "$merged_dir/$template_name" ]; then
@@ -260,20 +272,32 @@ merge_xtra_templates() {
 					cp -r "$dir" "$merged_dir" || msg error "Cannot merge templates"
 				fi
 			done
+		else
+			for dir in "$conf_workdir/$default_repo_dir"/srcpkgs/*; do
+				template_name=$(basename "$dir")
+				echo "$template_name" >> "$conf_workdir"/void_templates
+			done
 		fi
 	done
 }
 
 update_template_list() {
+	# Update all templates list
 	msg debug "Creating list of templates (This will take a while)"
-	template_list=""
-	for subdir in "$conf_workdir/$default_repo_dir/srcpkgs/"*; do
-		[ -d "$subdir" ] && template_list="$template_list $(basename "$subdir")"
+	all_templates=""
+	for subdir in "$conf_workdir/$default_repo_dir"/srcpkgs/*; do
+		[ -d "$subdir" ] && all_templates="$all_templates $(basename "$subdir")"
 	done
-	echo "$template_list" > "$conf_workdir"/template_list
+	echo "$all_templates" > "$conf_workdir"/all_templates
+	for list in  "$conf_workdir"/templates_*; do
+		cat "$list" >> "$conf_workdir"/xtra_templates
+	done
 	msg debug "Template merge completed."
 	msg info "
-	Available templates: ${green}${bold}$(cat "$conf_workdir"/template_list | wc -w)${reset_colour}"
+	templates in void-packages: $(cat "$conf_workdir"/void_templates | wc -w)
+	xtra_templates: $(cat "$conf_workdir"/xtra_templates | wc -w)
+	Available templates: ${green}${bold}$(cat "$conf_workdir"/all_templates | wc -w)${reset_colour}
+	"
 }
 
 integrate_xtra_templates() {
@@ -338,16 +362,21 @@ search_templates() {
 discover_updates() {
 	# Compare versions of available templates to these of installed
 	# packages and create a list of packages to update.
-	for template in $template_list; do
+	msg info "Checking for updatable packages..."
+	for template in $all_templates; do
+		msg debug "Checking $template"
 		if xbps-query -p pkgname "$template" >/dev/null; then
 			templates_to_check="$templates_to_check $template"
 		fi
 	done
 	for template in $templates_to_check; do
-		version=$(get_version "$merged_dir/$template"/template)
-		revision=$(get_revision "$merged_dir/$template"/template)
-		template_version=$(echo "$version""$revision" | sed "s/[_.]//g")
-		installed_version=$(xbps-query -p pkgver "$template" | sed "s/$template-//g" |  sed "s/[_.]//g" )
+		msg debug "Comparing versions of $template"
+		get_version "$merged_dir/$template"/template
+		#version="$version"
+		get_revision "$merged_dir/$template"/template
+		#revision="$revision"
+		template_version=$(echo "$version"_"$revision" | sed 's/\.//g')
+		installed_version=$(xbps-query -p pkgver "$template" | sed "s/$template-//g" |  sed 's/\.//g' )
 		if [ "$installed_version" -lt "$template_version" ]; then
 			templates_to_update="$templates_to_update $template"
 		fi
@@ -446,8 +475,7 @@ while getopts "slhub:i:x:q:" OPTION; do
 	case "${OPTION}" in
 		s) op_retrieve=1 ;;
 		l) op_log=1 ;;
-		h)
-			usage
+		h) usage
 			exit 0
 			;;
 		b) packages="$OPTARG" && op_build=1 ;;
@@ -455,8 +483,7 @@ while getopts "slhub:i:x:q:" OPTION; do
 		x) op_xbps_src="$OPTARG" ;;
 		q) template_query="$OPTARG" && op_query=1 ;;
 		u) op_update=1 ;;
-		*)
-			usage
+		*) usage
 			exit 0
 			;;
 	esac
