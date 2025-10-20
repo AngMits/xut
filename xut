@@ -88,19 +88,19 @@ usage() {
 		Build and install packages for Void Linux, from the abyss-packages unofficial repo
 
 		OPTIONS
-		 -s         Sync the repos.
-		 -l         Keep a log file under $conf_log_dir.
-		 -h         Display this usage information.
+		 -s                      Sync the repos.
+		 -l                      Keep a log file under $conf_log_dir.
+		 -h                      Display this usage information.
 		 -b <package1,package2>  Build a list of (comma-separated) packages.
 		 -i <package1,package2>  Build and install a list of (comma-seperated) packages.
-		 -x         Give xbps-src commands.
-		 -q <query> Search for <query> in available templates.
-		 -u         Update packages.
+		 -x                      Give xbps-src commands.
+		 -q <query>              Search for <query> in available templates.
+		 -u                      Update packages.
 
 	 The options are given together. For example in order to sync,
-	 enable loging and install  <package> the cli command is 
+	 enable loging and install <package> the cli command is
 	 <xut -sli package>.
-	 
+
 	EOH
 }
 
