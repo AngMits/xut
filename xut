@@ -283,13 +283,13 @@ merge_xtra_templates() {
 
 update_template_list() {
 	# First remove all templates lists
-	if [ "$op_log" != 1 ]; then
-		rm -f "$conf_workdir"/templates_*
-		rm -f "$conf_workdir"/*_templates
-	else
-		rm -v "$conf_workdir"/templates_* 2>/dev/null
-		rm -v "$conf_workdir"/*_templates 2>/dev/null
-	fi
+	#if [ "$op_log" != 1 ]; then
+	#	rm -f "$conf_workdir"/templates_*
+	#	rm -f "$conf_workdir"/*_templates
+	#else
+	#	rm -v "$conf_workdir"/templates_* 2>/dev/null
+	#	rm -v "$conf_workdir"/*_templates 2>/dev/null
+	#fi
 	# Update all templates list
 	msg debug "Creating list of templates (This will take a while)"
 	all_templates=""
@@ -480,12 +480,13 @@ main() {
 	retrieve_repos
 	sync_repos
 	integrate_xtra_templates
-	if [ ! -f "$conf_workdir"/all_templates ]; then
-		update_template_list && lists_updated=1
-	fi
-	if [ "$op_changed" = 1 ] && [ -z "$lists_updated" ]; then
-		update_template_list
-	fi
+	# I think we don't need this
+	#if [ ! -f "$conf_workdir"/all_templates ]; then
+	#	update_template_list && lists_updated=1
+	#fi
+	#if [ "$op_changed" = 1 ] && [ -z "$lists_updated" ]; then
+	#	update_template_list
+	#fi
 	update_packages
 	search_templates
 	install_packages
