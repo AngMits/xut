@@ -176,7 +176,7 @@ sync_repos() {
 			git checkout master || msg error "Cannot switch to master branch. Probably uncommitted changes on $current_branch?"
 			msg debug "Switched to master branch"
 		fi
-		git pull "$repo" "$current_branch" || msg error "Cannot sync to $repo"
+		git pull "$repo" || msg error "Cannot sync to $repo"
 		msg info "$repo synced"
 	done
 	op_integrate=1
