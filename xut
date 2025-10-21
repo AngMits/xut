@@ -248,22 +248,17 @@ merge_xtra_templates() {
 				search_path="$conf_workdir/$repodir/srcpkgs"
 			fi
 			msg debug "Searching in $search_path"
-
 			# Create xtra repo templates list
 			repo_name=$(basename "$repo")
-
-			# Use find instead of for loop - much faster
-			find "$search_path" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; >> "$conf_workdir/templates_$repo_name"
-
+			# Include both directories and symlinks
+			find "$search_path" -mindepth 1 -maxdepth 1 \( -type d -o -type l \) -exec basename {} \; >> "$conf_workdir/templates_$repo_name"
 			# Batch copy all templates at once, then selectively update
 			for dir in "$search_path"/*; do
-				[ ! -d "$dir" ] && continue
+				[ ! -d "$dir" ] && [ ! -L "$dir" ] && continue
 				[ ! -e "$dir/template" ] && continue
-
 				template_name=$(basename "$dir")
 				source_template="$dir/template"
 				dest_template="$conf_workdir/$default_repo_dir/srcpkgs/$template_name/template"
-
 				if should_copy_template "$source_template" "$dest_template"; then
 					# Remove from merged_dir if it already exists
 					[ -d "$merged_dir/$template_name" ] && rm -rf "$merged_dir/$template_name"
@@ -271,8 +266,8 @@ merge_xtra_templates() {
 				fi
 			done
 		else
-			# Use find for void_templates too - much faster than loop
-			find "$conf_workdir/$default_repo_dir/srcpkgs" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; > "$conf_workdir"/void_templates
+			# Include both directories and symlinks for void_templates
+			find "$conf_workdir/$default_repo_dir/srcpkgs" -mindepth 1 -maxdepth 1 \( -type d -o -type l \) -exec basename {} \; > "$conf_workdir"/void_templates
 		fi
 	done
 }
