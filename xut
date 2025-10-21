@@ -212,7 +212,7 @@ should_copy_template() {
 
 	# Compare versions
 	if [ "$src_v" -gt "$dest_v" ] 2>/dev/null; then
-		msg info "Merging newer ${green}${bold}$template_name${reset_colour} version"
+		msg info "newer ${green}${bold}$template_name${reset_colour} version"
 		op_changed=1
 		return 0
 	elif [ "$src_v" -lt "$dest_v" ] 2>/dev/null; then
@@ -221,7 +221,7 @@ should_copy_template() {
 
 	# Versions equal, compare revision
 	if [ "$src_revision" -gt "$dest_revision" ] 2>/dev/null; then
-		msg info "Merging newer ${green}${bold}$template_name${reset_colour} revision"
+		msg info "newer ${green}${bold}$template_name${reset_colour} revision"
 		op_changed=1
 		return 0
 	fi
