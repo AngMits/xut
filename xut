@@ -34,7 +34,7 @@ msg() {
 	elif [ "${1}" = "info" ]; then
 		printf "%s\n" "${green}${bold}(~>) Info:${reset_colour}  ${bold}${2} ${reset_colour}"
 	elif [ "${1}" = "debug" ]; then
-		[ "$op_log" -eq 1 ] && printf "%s\n" "$fade(<>) Debug : ${2} ${reset_colour}"
+		[ "$op_log" = 1 ] && printf "%s\n" "$fade(<>) Debug : ${2} ${reset_colour}"
 	else
 		printf "%s\n" "${red}(!!) Error: ${1} is not recognised for msg() ${reset_colour}" && exit 1
 	fi
@@ -137,7 +137,7 @@ include_additional_repos() {
 }
 
 retrieve_repos() {
-	if [ ! "$op_retrieve" = 1 ]; then
+	if [ "$op_retrieve" = 0 ]; then
 		msg debug "Not retrieving repos..."
 		return
 	fi
@@ -162,7 +162,7 @@ retrieve_repos() {
 
 sync_repos() {
 	# Sync every configured repo.
-	if [ ! "$op_sync" = 1 ]; then
+	if [ "$op_sync" = 0 ]; then
 		msg debug "Not syncing repos..."
 		return
 	fi
@@ -230,7 +230,7 @@ should_copy_template() {
 
 merge_xtra_templates() {
 	# First remove all templates lists
-	if [ "$op_log" != 1 ]; then
+	if [ "$op_log" = 0 ]; then
 		rm -f "$conf_workdir"/templates_*
 		rm -f "$conf_workdir"/*_templates
 	else
@@ -274,7 +274,7 @@ merge_xtra_templates() {
 
 update_template_list() {
 	# First remove all templates lists
-	#if [ "$op_log" != 1 ]; then
+	#if [ "$op_log" = 0 ]; then
 	#	rm -f "$conf_workdir"/templates_*
 	#	rm -f "$conf_workdir"/*_templates
 	#else
@@ -303,7 +303,7 @@ update_template_list() {
 }
 
 integrate_xtra_templates() {
-	if [ ! "$op_integrate" = 1 ]; then
+	if [ "$op_integrate" = 0 ]; then
 		msg debug "Integration not needed"
 		return
 	fi
@@ -341,7 +341,7 @@ xbps_src_command() {
 
 search_templates() {
 	# Search available templates.
-	if [ ! "$op_query" -eq 1 ]; then
+	if [ "$op_query" = 0 ]; then
 		msg debug "No template search requested.."
 		return
 	fi
@@ -368,7 +368,7 @@ search_templates() {
 			done
 		fi
 	done
-	if [ "$found" -eq 0 ]; then
+	if [ "$found" = 0 ]; then
 		msg warn "No templates found!"
 		exit 0
 	fi
@@ -430,7 +430,7 @@ build_packages() {
 	fi
 
 	# Start package build
-	if [ "$op_build" -eq 1 ] && [ "$op_install" -eq 1 ]; then
+	if [ "$op_build" = 1 ] && [ "$op_install" = 1 ]; then
 		msg error " -b and -i arguments cannot be used at the same time"
 	fi
 	package_list="$(echo "$packages" | tr ',' ' ')"
@@ -448,7 +448,7 @@ build_packages() {
 	done
 
 	# Exit program if build_packages() is called by itself.
-	if [ -n "$packages" ] && [ "$op_install" -eq 0 ]; then
+	if [ -n "$packages" ] && [ "$op_install" = 0 ]; then
 		msg info "Successfully build $packages!"
 		msg info "Packages are in $conf_workdir/$default_repo_dir/hostdir/.
 You can install them with xbps or by running <xut -i>."
@@ -466,7 +466,7 @@ install_packages() {
 
 main() {
 	# Check for root
-	[ "$(id -u)" -eq 0 ] && msg error "Please run the program as a user!"
+	[ "$(id -u)" = 0 ] && msg error "Please run the program as a user!"
 	msg info "Full command given is [xut $showargs]."
 	[ -n "$op_xbps_src" ] && xbps_src_command
 	include_additional_repos
@@ -511,7 +511,7 @@ done
 # Capture all the arguments given
 showargs="$(printf "%s" "$*")"
 shift $((OPTIND - 1))
-[ "$OPTIND" -eq 1 ] && usage && exit
+[ "$OPTIND" = 1 ] && usage && exit
 if [ "$op_log" = 1 ]; then
 	main "$@" 2>&1 | tee -- "$log_file"
 else
