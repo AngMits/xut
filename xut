@@ -370,8 +370,8 @@ search_templates() {
 	done
 	if [ "$found" = 0 ]; then
 		msg warn "No templates found!"
-		exit 0
 	fi
+	exit 0
 }
 
 discover_updates() {
