@@ -275,6 +275,8 @@ merge_xtra_templates() {
 			find "$conf_workdir/$default_repo_dir/srcpkgs" -mindepth 1 -maxdepth 1 \( -type d -o -type l \) -exec basename {} \; > "$conf_workdir"/void_templates
 		fi
 	done
+	# Create template list for restricted packages, in order to include them in update discovery and updates.
+	grep -lr "restricted=yes" "$conf_workdir/$default_repo_dir/srcpkgs/" |  awk -F '/' '{print $(NF-1)}' > "$conf_workdir/templates_restricted-packages"
 }
 
 update_template_list() {
@@ -480,13 +482,6 @@ main() {
 	retrieve_repos
 	sync_repos
 	integrate_xtra_templates
-	# I think we don't need this
-	#if [ ! -f "$conf_workdir"/all_templates ]; then
-	#	update_template_list && lists_updated=1
-	#fi
-	#if [ "$op_changed" = 1 ] && [ -z "$lists_updated" ]; then
-	#	update_template_list
-	#fi
 	update_packages
 	search_templates
 	install_packages
