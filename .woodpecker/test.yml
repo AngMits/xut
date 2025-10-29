@@ -25,6 +25,6 @@ steps:
 
       - echo "User 'developer' created successfully."
 
-      - sudo -u developer whoami
-      - sudo -u developer echo "Running as developer"
+      # - sudo -u developer whoami
+      # - sudo -u developer echo "Running as developer"
       - shellspec
