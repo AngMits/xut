@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-## Copyright (c) 2024-2025 by mobinmob  <mobinmob@disroot.org
+## Copyright (c) 2024-2025 by mobinmob  <mobinmob@disroot.org>
 ## This program is free software: you can redistribute it and/or modify it under
 ## the terms of the GNU General Public License as published by the Free
 ## Software Foundation, version 2.0 of the License.
@@ -23,13 +23,15 @@ msg() {
 	# ${2} is the message content needs to be here, all messages depend on it.
 
 	# Colours
-	green=$(tput setaf 2)
-	red=$(tput setaf 1)
-	yellow=$(tput setaf 3)
-	fade=$(tput dim)
-	bold=$(tput bold)
-	reset_colour=$(tput sgr0)
-
+	if command -v tput >/dev/null 2>&1; then
+		if [ -t 1 ];then
+			green=$(tput setaf 2);red=$(tput setaf 1);yellow=$(tput setaf 3);
+			fade=$(tput dim);bold=$(tput bold);	reset_colour=$(tput sgr0)
+		fi
+else
+    green=""; red=""; yellow=""; fade=""; bold=""; reset_colour=""
+fi
+	
 	if [ "${1}" = "error" ]; then
 		printf "%s\n" "${red}${bold}(!!) Error:${reset_colour} ${bold}${2}${reset_colour}" && exit 1
 	elif [ "${1}" = "warn" ]; then
@@ -270,14 +272,6 @@ merge_xtra_templates() {
 }
 
 update_template_list() {
-	# First remove all templates lists
-	#if [ "$op_log" = 0 ]; then
-	#	rm -f "$conf_workdir"/templates_*
-	#	rm -f "$conf_workdir"/*_templates
-	#else
-	#	rm -v "$conf_workdir"/templates_* 2>/dev/null
-	#	rm -v "$conf_workdir"/*_templates 2>/dev/null
-	#fi
 	# Update all templates list
 	msg debug "Creating list of templates (This will take a while)"
 	all_templates=""
