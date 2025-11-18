@@ -85,30 +85,15 @@ trap 'rm -rf "$merged_dir"' EXIT INT TERM
 
 # Set default operation variables
 op_log=0		#Controls the appearance of debug messages for the user (-l)
-op_query=0		#Enables searching for templates (-q)
-op_build=0		#Enables building packages, for internal use.
-op_install=0	#Enables instaling packages (-i <package1,package2>)	
+op_query=0		#Search for templates (-q)
+op_build=0		#Build packages, ( -b).
+op_install=0	#Install packages (-i <package1,package2>)	
 op_xbps_src=""	#Contains the xbps-src command to be given after the -x argument
-op_update=0		#Enables the update operation (-u)
+op_update=0		#Update sw from updated templates (-u)
 op_changed=0	#Indicated that the repo contents have changed, for internal use
-op_retrieve=0	#Enables cloning repos (-s)
-op_sync=0		#Enables syncing repos
+op_retrieve=0	#Clone repos repos (-s)
+op_sync=0		#Sync repos
 op_integrate=0	#Intergrate all templates into a merged repo.
-
-get_version() {
-	# Get the version from the template file given as ${1}
-	version=$(grep -E "^(version)[=]" "${1}" \
-		| sed -E 's/^(version)[=][[:space:]]*["]?([0-9.]+)["]?.*/\2/')
-	export version="$version"
-}
-
-get_revision() {
-	# Get the revision from the template file given as ${1}
-	revision=$(grep -E "^(revision)[=]" "${1}" \
-		| sed -E 's/^(revision)[=][[:space:]]*["]?([0-9]+)["]?.*/\2/')
-	export revision="$revision"
-}
-
 
 usage() {
 	# Display basic tui information
@@ -390,10 +375,12 @@ discover_updates() {
 	done
 	for template in $templates_to_check; do
 		msg debug "Comparing versions of $template"
-		get_version "$conf_workdir/$default_repo_dir/srcpkgs/$template"/template
-		get_revision "$conf_workdir/$default_repo_dir/srcpkgs/$template"/template
+		version=$(grep -E "^(version)[=]" "$conf_workdir/$default_repo_dir/srcpkgs/$template"/template \
+		| sed -E 's/^(version)[=][[:space:]]*["]?([0-9.]+)["]?.*/\2/' | tr '[:alpha:]' '0')
+		revision=$(grep -E "^(revision)[=]" "$conf_workdir/$default_repo_dir/srcpkgs/$template"/template \
+		| sed -E 's/^(revision)[=][[:space:]]*["]?([0-9]+)["]?.*/\2/' | tr '[:alpha:]' '0')
 		template_version=$(echo "$version""$revision" | sed 's/\.//g')
-		installed_version=$(xbps-query -p pkgver "$template" | sed "s/$template-//g" | sed 's/\.//g' | sed 's/\_//g' )
+		installed_version=$(xbps-query -p pkgver "$template" | sed "s/$template-//g" | sed 's/\.//g' | sed 's/\_//g' | tr '[:alpha:]' '0' )
 		if [ "$installed_version" -lt "$template_version" ]; then
 			templates_to_update="$templates_to_update $template"
 		fi
