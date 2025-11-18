@@ -270,7 +270,7 @@ update_template_list() {
 	# Update all templates list
 	msg debug "Creating list of templates (This will take a while)"
 	all_templates=""
-	all_templates=$(find "$conf_workdir/$default_repo_dir/srcpkgs/" -maxdepth 1 -exec basename {} ")
+	all_templates=$(find "$conf_workdir/$default_repo_dir/srcpkgs/" -maxdepth 1 -exec basename {} \;)
 	echo "$all_templates" | tr ' ' '\n' >"$conf_workdir"/all_templates_source
 	for list in "$conf_workdir"/templates_*; do
 		cat "$list" >>"$conf_workdir"/xtra_templates_source
@@ -285,7 +285,7 @@ update_template_list() {
 	templates in void-packages: $(cat "$conf_workdir"/void_templates | wc -w)
 	xtra_templates: $(cat "$conf_workdir"/xtra_templates | wc -w) (Not unique)
 	Available templates: ${green}${bold}$(cat "$conf_workdir"/all_templates | wc -w)${reset_colour}
-	"
+	"	
 }
 
 integrate_xtra_templates() {
@@ -413,7 +413,7 @@ build_packages() {
 		msg debug "Building restricted packages is enabled!"
 	else
 		msg info "Enable building restricted packages!"
-		printf "%s" "XBPS_ALLOW_RESTRICTED=yes" "\n" >>"$conf_workdir"/"$default_repo_dir"/etc/conf
+		printf "%s\n" "XBPS_ALLOW_RESTRICTED=yes" >>"$conf_workdir"/"$default_repo_dir"/etc/conf
 	fi
 
 	# Bootstrap if masterdir is not populated
@@ -461,6 +461,8 @@ main() {
 	# Check for root
 	[ "$(id -u)" = 0 ] && msg error "Please run the program as a user!"
 	msg info "Full command given is [xut $showargs]."
+	
+	distribution_sanity_check
 	[ -n "$op_xbps_src" ] && xbps_src_command
 	include_additional_repos
 
