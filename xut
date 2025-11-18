@@ -475,8 +475,10 @@ main() {
 	install_packages
 }
 
-# Keep only 5 log files, including the current one.
-find "$conf_log_dir" -name "xut_*.log" -print | tail -n+5 | xargs rm -f
+# Keep at least 5 log files, including the current one.
+find "$conf_log_dir" -name "xut_*.log" -print| sort -r | awk 'NR>5' | xargs rm -f
+
+
 
 while getopts "slhub:i:x:q:" OPTION; do
 	case "${OPTION}" in
