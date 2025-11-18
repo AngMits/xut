@@ -200,12 +200,14 @@ should_copy_template() {
 
 	msg debug "Comparing: $source_template_name($src_ver) vs $dest_template_name($dest_ver)"
 
-	# Use sort -V to compare version_revision strings
-	newer=$(printf "%s\n%s\n" "$src_ver" "$dest_ver" | sort -V | tail -1)
+	# Use sort -V to compare version_revision strings. -V is not defined in POSIX/SUS
+	if printf '%s\n' "2.3.1" "2.2.9" | LC_ALL=C sort -V >/dev/null 2>&1; then
+    	newer=$(printf '%s\n%s\n' "$src_ver" "$dest_ver" | LC_ALL=C sort -V | sed -n '$p')
+	else msg error "You need a sort(1) that supports the -V argument"; fi
 
 	# If source is newer
 	if [ "$newer" = "$src_ver" ] && [ "$src_ver" != "$dest_ver" ]; then
-		msg info "newer ${green}${bold}$template_name${R} version"
+		msg info "newer ${green}${bold}$template_name${reset_colour} version"
 		op_changed=1
 		return 0
 	fi
