@@ -74,7 +74,8 @@ readonly default_repo_dir
 
 # Define a log filename
 conf_log_dir="$conf_workdir/logs"
-log_file="$conf_log_dir/$(basename "$0")_$(date +"%Y%m%d_%T")".log
+log_file="$conf_log_dir/$(basename "$0")_$(date +"%Y%m%d_%H%M%S").log"
+
 
 # Check for needed dirs.
 [ ! -e "$conf_log_dir" ] && mkdir -p "$conf_log_dir"
