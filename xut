@@ -81,6 +81,7 @@ readonly default_repo=https://github.com/void-linux/void-packages
 readonly repo_abyss_packages=https://codeberg.org/mobinmob/abyss-packages
 default_repo_dir=$(printf '%s' "$default_repo" | awk -F"/" '{ print "/"$(NF-1)"/"$NF }' | tr "/" "_")
 readonly default_repo_dir
+[ -n "$CONF_WORKDIR" ] && conf_workdir="$CONF_WORKDIR" && msg info "Using $CONF_WORKDIR as working directory."
 [ -z "$conf_workdir" ] && conf_workdir="$HOME"/.xut
 
 # Define a log filename

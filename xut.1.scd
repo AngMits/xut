@@ -46,6 +46,13 @@ additional software for a void-linux installation.
 	- *-l* and *-s* are meant to be used with some arguments (*-x*, *-b*, *-i* and *-u*).
 	- *-l* enables "debug" messages in the output, which becomes more verbose.
 
+# ENVIRONMENT
+
+	*NO_COLOR* is respected, as defined in https://no-color.org/
+	
+	*CONF_WORKDIR* accepts a path to a directory and xut uses it as 
+	a working directory, overriding the configuration.
+		
 # CONFIGURATION
 
 	*xut* has very limited configuration.
