@@ -103,7 +103,7 @@ get_revision() {
 usage() {
 	# Display basic tui information
 	cat <<-EOH
-		xut "$xut_version"
+		xut $xut_version
 		Usage: $(basename "$0") [options]
 
 		*x*tra *u*ser *t*emplates
