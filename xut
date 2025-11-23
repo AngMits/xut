@@ -137,6 +137,10 @@ find_repodir() {
 	repodir=$(printf '%s' "${1}" | awk -F"/" '{ print "/"$(NF-1)"/"$NF }' | tr "/" "_")
 }
 
+create_template_list() {
+   ls -d "${1}"/*/ | sed 's/\/$//'|awk -F"/" '{ print $NF }' > "${2}"
+}
+
 include_additional_repos() {
 	# Add all repos to a list, repo_abyss_packages is last
 	repos_list="$default_repo"
@@ -146,6 +150,7 @@ include_additional_repos() {
 	done
 	repos_list="$repos_list $repo_abyss_packages"
 }
+
 
 retrieve_repos() {
 	if [ "$op_retrieve" = 0 ]; then
@@ -250,7 +255,7 @@ merge_xtra_templates() {
 			repo_name=$(basename "$repo")
 			# Include both directories and symlinks
 			# Show progress during template processing
-			find "$search_path" -mindepth 1 -maxdepth 1 \( -type d -o -type l \) -exec basename {} \; >>"$conf_workdir/templates_$repo_name"
+			create_template_list "$search_path" "$conf_workdir/templates_$repo_name"
 			processed=0
 			# Process templates
 			for dir in "$search_path"/*; do
@@ -270,7 +275,7 @@ merge_xtra_templates() {
 			printf "\n"
 		else
 			# Include both directories and symlinks for void_templates
-			find "$conf_workdir/$default_repo_dir/srcpkgs" -mindepth 1 -maxdepth 1 \( -type d -o -type l \) -exec basename {} \; >"$conf_workdir"/void_templates
+			create_template_list "$conf_workdir/$default_repo_dir/srcpkgs" "$conf_workdir"/void_templates
 		fi
 	done
 	# Create template list for restricted packages, in order to include them in update discovery and updates.
@@ -280,9 +285,7 @@ merge_xtra_templates() {
 update_template_list() {
 	# Update all templates list
 	msg debug "Creating list of templates (This will take a while)"
-	all_templates=""
-	all_templates=$(find "$conf_workdir/$default_repo_dir/srcpkgs/" -maxdepth 1 -exec basename {} \;)
-	echo "$all_templates" | tr ' ' '\n' >"$conf_workdir"/all_templates_source
+	create_template_list "$conf_workdir/$default_repo_dir/srcpkgs/" "$conf_workdir"/all_templates_source
 	for list in "$conf_workdir"/templates_*; do
 		cat "$list" >>"$conf_workdir"/xtra_templates_source
 	done
