@@ -222,7 +222,7 @@ should_copy_template() {
 	src_ver=$(extract_verrev "$source_template")
 	dest_ver=$(extract_verrev "$dest_template")
 	msg debug "Comparing: $source_template_name($src_ver) vs $dest_template_name($dest_ver)"
-	xbps-uhelper cmpver "$destver" "$srcver"
+	xbps-uhelper cmpver "$dest_ver" "$src_ver"
 	# If source is newer
 	if [ "$?" = 255 ]; then
 		msg info "newer ${green}${bold}$template_name${reset_colour} version"
