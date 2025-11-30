@@ -11,9 +11,10 @@ steps:
     commands:
       - xbps-install -S
       - xbps-install -uy xbps
-      - xbps-install -y wget
+      - xbps-install -y wget make
+      - make install
       - wget https://github.com/shellspec/shellspec/archive/0.28.1.tar.gz
-      - tar xzvf 0.28.1.tar.gz
+      - tar xzf 0.28.1.tar.gz
       - ln -s "$(pwd)/shellspec-0.28.1/shellspec" /usr/local/bin/shellspec
       - ls -la
       - echo "Creating new user 'developer'..."
@@ -26,4 +27,7 @@ steps:
       - usermod --shell /bin/sh developer
       - su -c 'whoami' developer
       - id
-      - 'shellspec'
+      - pwd
+      - 'shellspec $(pwd)/spec/xut_spec.sh --color --format documentation'
+      - 'shellspec $(pwd)/spec/xut_script_spec.sh --color --format documentation'
+      - 'shellspec $(pwd)/spec/xut_installed_spec.sh --color --format documentation'

@@ -1,0 +1,130 @@
+name: "xut CI"
+on:
+  push:
+  pull_request:
+
+jobs:
+
+  test:
+    runs-on: codeberg-small
+    container:
+      image: ghcr.io/void-linux/void-glibc-full
+      options: --user runner
+      env:
+        SHELLSPEC_VERSION: '0.28.1'
+
+    steps:
+
+      - name: Install dependencies and create runner user
+        run: |
+          xbps-install -Syu xbps
+          xbps-install -yu
+          xbps-install -y git shellcheck shfmt wget nodejs sudo
+          useradd -m -u 1000 -s /bin/sh runner
+          echo 'runner ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/runner
+
+      - uses: actions/checkout@v4
+
+      # - name: "Format check using shfmt"
+      #   id: shfmt_check
+      #   continue-on-error: true
+      #   run:
+      #     su -c 'whoami' runner
+      #     sh shfmt -p -d --apply-ignore -ci -sr xut
+
+      # - name: "Lint using shellcheck"
+      #   id: shellcheck_check
+      #   continue-on-error: true
+      #   run:
+      #     su -c 'whoami' runner
+      #     shellcheck -S error xut
+
+      # - name: Apply shfmt fixes if needed
+      #   if: steps.shfmt_check.outcome == 'failure'
+      #   run: |
+      #     echo "Applying shfmt fixes..."
+      #     su -c 'whoami' runner
+      #     shfmt -p -w --apply-ignore -ci -sr xut
+
+      # - name: "Create PR with fixes if required"
+      #   if: steps.shfmt_check.outcome == 'failure' || steps.shellcheck_check.outcome == 'failure'
+      #   run: |
+      #     git config --global user.name "Forgejo Bot"
+      #     git config --global user.email "bot@forgejo.local"
+      #     git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          
+      #     if ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
+      #       BRANCH_NAME="auto-fix-$(date +%s)"
+      #       git checkout -b "$BRANCH_NAME"
+      #       git add -A
+      #       COMMIT_MSG="🤖 Auto-fix: Code formatting and linting"
+      #       if [ "${{ steps.shfmt_check.outcome }}" == "failure" ]; then
+      #         COMMIT_MSG="$COMMIT_MSG\n\n- Applied shfmt formatting"
+      #       fi
+      #       if [ "${{ steps.shellcheck_check.outcome }}" == "failure" ]; then
+      #         COMMIT_MSG="$COMMIT_MSG\n- Fixed shellcheck issues"
+      #       fi
+
+      #       git commit -m "$COMMIT_MSG"
+      #       git push origin "$BRANCH_NAME"
+
+      #       # Create PR via Codeberg/Forgejo API
+      #       curl -X POST \
+      #         -H "Authorization: token ${{ secrets.FORGEJO_TOKEN }}" \
+      #         -H "Content-Type: application/json" \
+      #         "https://codeberg.org/api/v1/repos/${{ github.repository }}/pulls" \
+      #         -d "{
+      #           \"title\": \"🤖 Auto-fix: Code formatting\",
+      #           \"body\": \"This PR was automatically created by CI to fix formatting issues.\\n\\n- shfmt: ${{ steps.shfmt_check.outcome }}\\n- shellcheck: ${{ steps.shellcheck_check.outcome }}\",
+      #           \"head\": \"$BRANCH_NAME\",
+      #           \"base\": \"${{ github.ref_name }}\"
+      #         }"
+            
+      #       echo "⚠️ Created PR with fixes: $BRANCH_NAME"
+      #     else
+      #       echo "✓ No changes to commit"
+      #     fi
+
+      - name: Setup ShellSpec
+        shell: sh
+        run: |
+          echo "Starting ShellSpec setup for version ${{ env.SHELLSPEC_VERSION }}"
+          
+          INSTALL_DIR="/tmp/shellspec_install"
+          mkdir -p "$INSTALL_DIR"
+          cd "$INSTALL_DIR" || exit 1
+          
+          wget "https://github.com/shellspec/shellspec/archive/${{ env.SHELLSPEC_VERSION }}.tar.gz" -O shellspec.tar.gz
+          tar xzf shellspec.tar.gz
+
+          # Calculate the path to the executable
+          SHELLSPEC_PATH="$(pwd)/shellspec-${{ env.SHELLSPEC_VERSION }}/shellspec"
+
+          echo "SHELLSPEC_PATH=$SHELLSPEC_PATH" >> $FORGEJO_ENV
+
+          echo "ShellSpec executable path registered: $SHELLSPEC_PATH"
+
+      - name: Run Tests with ShellSpec as script
+        shell: sh
+        run: |
+          echo "Running tests using path: ${{ env.SHELLSPEC_PATH }}"
+          "${{ env.SHELLSPEC_PATH }}" ./spec/xut_spec.sh --color --format documentation
+          ORIG_DIR="$PWD"
+          su - runner -c "
+            cd '$ORIG_DIR' &&
+            '${{ env.SHELLSPEC_PATH }}' -c  ./spec/xut_script_spec.sh --color --format documentation
+          "
+
+      - name: make install
+        run:
+          make install
+
+      - name: Run Tests with ShellSpec as installed command
+        shell: sh
+        run: |
+          echo "Running tests using path: ${{ env.SHELLSPEC_PATH }}"
+          ORIG_DIR="$PWD"
+          su - runner -c "
+            cd '$ORIG_DIR' &&
+            '${{ env.SHELLSPEC_PATH }}' ./spec/xut_installed_spec.sh --color --format documentation
+          "
