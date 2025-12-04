@@ -494,7 +494,6 @@ update_packages() {
 
 build_packages() {
 	# Prepare for installation
-
 	# Enable building restricted packages
 	if grep -q "XBPS_ALLOW_RESTRICTED=yes" "$confWorkdir"/"$defaultRepoDir"/etc/conf; then
 		msg debug "Building restricted packages is enabled!"
@@ -502,22 +501,24 @@ build_packages() {
 		msg info "Enable building restricted packages!"
 		printf "%s\n" "XBPS_ALLOW_RESTRICTED=yes" >>"$confWorkdir"/"$defaultRepoDir"/etc/conf
 	fi
-
 	# Bootstrap if masterdir is not populated
 	if [ ! -e "$confWorkdir"/"$defaultRepoDir"/masterdir-"$(xbps-uhelper arch)"/usr/bin/xbps-install ]; then
 		cd "$confWorkdir"/"$defaultRepoDir" || msg error "Cannot change to $confWorkdir/$defaultRepoDir"
 		./xbps-src binary-bootstrap || msg error "Cannot bootstrap!"
 	fi
-
 	# Start package build
 	packageList="$(echo "$packages" | tr ',' ' ')"
 	export packageList="$packageList"
+	# Check if the first package is an argument
+	set -- "$packageList"
+	for first in i u x h q; do
+		if [ "${1}" = $first ]; then
+		msg error "${1} is wrong, expecting a package name not an argument!"; fi ;done
 	for package in $packageList; do
 		cd "$confWorkdir"/"$defaultRepoDir" && ./xbps-src pkg -E "$package"
 		cmdStatus=$?
 		[ "$cmdStatus" != 0 ] && msg error "$package build failed, see above!"
 	done
-
 	# Exit program if build_packages() is called by itself.
 	if [ -n "$packages" ] && [ "$opInstall" = 0 ]; then
 		msg info "Successfully build $packages!"
@@ -540,8 +541,6 @@ main() {
 	msg info "Full command given is [${green}xut $showargs${resetColour}]."
 	distribution_sanity_check
 	include_additional_repos
-
-	# Clone repos if needed
 	retrieve_repos
 	[ "$opSync" -eq 0 ] || sync_repos
 	[ "$opIntegrate" -eq 0 ] || integrate_xtra_templates
@@ -564,20 +563,13 @@ while getopts "slhudb:i:x:q:" OPTION; do
 	case "${OPTION}" in
 		s) opSync=1 ;;
 		l) opLog=1 ;;
-		h)	
-			usage
-			exit 0
-			;;
 		d) opLog=1; set -x ;;
 		b) packages="$OPTARG"; opBuild=1 ;;
 		i) packages="$OPTARG"; opInstall=1 ;;
 		x) opXbpsSrc="$OPTARG"; xbps_src_command ;;
 		q) templateQuery="$OPTARG"; opQuery=1 ;;
 		u) opUpdate=1 ;;
-		*)
-			usage
-			exit 0
-			;;
+		*|h) usage; exit 0 ;;
 	esac
 done
 
