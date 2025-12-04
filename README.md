@@ -52,7 +52,8 @@ xut [options]
 | -s                     | Sync the repos
 | -l                     | Keep a log file (5 most recent log files remain)        |
 | -h                     | Display this usage information.                         |
-| -b <package1,package2> | Build a (comma-separated) list of packages.             |                               |
+| -d			             | Enable debugging and logging output.                    |
+| -b <package1,package2> | Build a (comma-separated) list of packages.             |
 | -i <package1,package2> | Build and install a (comma-separated) list of packages. |
 | -x <command>           | Give xbps-src commands.                                 |
 | -q <query>             | Search for <query> in available templates.              |
