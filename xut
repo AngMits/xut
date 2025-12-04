@@ -127,7 +127,7 @@ mkdir -p "$XUT_TMP/templates" || msg error "Cannot create tmpfs workspace $XUT_T
 # Merged templates directory
 mergedDir=$(mktemp -d "${XUT_TMPDIR:-/tmp}/merged.XXXXXX") || msg error "Cannot create $mergedDir"
 # Cleanup on exit
-trap 'rm -rf "$mergedDir" ""$XUT_TMP/templates""' EXIT INT TERM
+trap 'rm -rf "$mergedDir" "$XUT_TMP/templates"' EXIT INT TERM
 }
 
 usage() {
@@ -177,26 +177,45 @@ create_template_list() {
 }
 
 extract_verrev() {
- # Extract version and revision information from template ${1}.
-    ver=''
-    rev=''
+    awk -F= '
+        /version=/ {
+            ver=$2
+            gsub(/"/,"",ver)
+        }
+        /revision=/ {
+            rev=$2
+            gsub(/"/,"",rev)
+        }
+        ver && rev { print ver "_" rev; exit }
+    ' "$1"
+}
 
-    while IFS= read -r line; do
-        case "$line" in
-            version=*)
-                ver="${line#version=}"       # strip "version="
-                ver="${ver#\"}"              # strip leading quote if present
-                ver="${ver%\"}"              # strip trailing quote if present
-                ;;
-            revision=*)
-                rev="${line#revision=}"      # strip "revision="
-                rev="${rev#\"}"
-                rev="${rev%\"}"
-                ;;
-        esac
-    done < "$1"
+cmpver() {
+    awk -v a="$1" -v b="$2" '
+        function norm(s) {
+            gsub(/[._-]/, " ", s)
+            return s
+        }
+        BEGIN {
+            # Normalize delimiters
+            a = norm(a)
+            b = norm(b)
 
-    printf "%s_%s" "$ver" "$rev"
+            na = split(a, A, " ")
+            nb = split(b, B, " ")
+            n  = (na > nb ? na : nb)
+
+            for (i = 1; i <= n; i++) {
+                xa = (i <= na ? A[i] + 0 : 0)
+                xb = (i <= nb ? B[i] + 0 : 0)
+
+                if (xa < xb) exit 255
+                if (xa > xb) exit 0
+            }
+
+            exit 1   # equal
+        }
+    '
 }
 
 include_additional_repos() {
@@ -260,7 +279,7 @@ should_copy_template() {
 	srcVer=$(extract_verrev "$sourceTemplate")
 	destVer=$(extract_verrev "$destTemplate")
 	msg debug "Comparing: $sourceTemplateName($srcVer) vs $destTemplateName($destVer)"
-	xbps-uhelper cmpver "$destVer" "$srcVer"
+	cmpver  "$destVer" "$srcVer"
 	# If source is newer
 	if [ "$?" = 255 ]; then
 		msg info "... $templateName ${green}${bold}$srcVer${resetColour}"
@@ -347,7 +366,7 @@ integrate_xtra_templates() {
 		# Remove original directories from void-packages to avoid stale patches
 		msg debug "Cleaning older package directories from void-packages"
 		for mergedPkg in "$mergedDir"/*; do
-			pkgName=${mergedPkg##*/}
+			pkgName="${mergedPkg##*/}"
 			originalPkg="$confWorkdir/$defaultRepoDir/srcpkgs/$pkgName"
 			if [ -d "$originalPkg" ]; then
 				msg debug "Removing old package directory: $pkgName"
@@ -446,7 +465,7 @@ discover_updates() {
         tpl_ver=$(extract_verrev "$tpl")
  
         # Compare versions
-        xbps-uhelper cmpver "$inst" "$tpl_ver" >/dev/null 2>&1
+        cmpver "$inst" "$tpl_ver" >/dev/null 2>&1
         case $? in
             255)
                 templatesToUpdate="$templatesToUpdate $template"
