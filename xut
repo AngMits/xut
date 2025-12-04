@@ -15,9 +15,6 @@
 #set -e # End on first error
 #set -x # Show what script is going to do
 
-# Change version to newer after every update
-readonly xutVersion=0.4.1-dev
-
 root_check() {
 	# Check for root
 	[ "$(id -u)" = 0 ] && usage && msg error "Please run the program as a user!"
@@ -43,6 +40,10 @@ set_colours() {
 }
 
 set_default_vars() {
+# Change version to newer after every update
+xutVersion=0.4.1-dev
+readonly xutVersion
+
 opLog=0       #Controls the appearance of debug messages for the user (-l)
 opQuery=0     #Search for templates (-q)
 opBuild=0     #Build packages, ( -b).
@@ -55,9 +56,8 @@ opIntegrate=0 #Intergrate all templates into a merged repo.
 opForeignHost=0	#Detection of non-Voidlinux host system.
 
 # Initialise empty vars
-templatesToCheck=""
+
 templatesToUpdate=""
-xtraTemplates=""
 packageList=""
 }
 
@@ -65,9 +65,7 @@ distribution_sanity_check() {
 	# Disable install and update when run in a non-Void distribution
 	[ -r /etc/os-release ] && . /etc/os-release
 	if [ -z "$NAME" ] || [ "$NAME" != "Void" ]; then
-		opUpdate=0
-		opInstall=0
-		opForeignHost=1
+		opUpdate=0; opInstall=0; opForeignHost=1
 		msg info "[xut] is not running under Void Linux. Install and update operations are disabled."
 	else
 		msg debug "Running on Void linux, all systems go!"
@@ -79,7 +77,7 @@ msg() {
 	# ${2} is the message content needs to be here, all messages depend on it.
 
 	if [ "${1}" = "error" ]; then
-		printf "%s\n" "${red}${bold}(!!) Error:${resetColour} ${bold}${2}${resetColour}" && exit 1
+		printf "%s\n" "${red}${bold}(!!) Error:${resetColour} ${bold}${2}${resetColour}" ; exit 1
 	elif [ "${1}" = "warn" ]; then
 		printf "%s\n" "${yellow}${bold}(~~) Warning:${resetColour} ${bold}${2} ${resetColour}"
 	elif [ "${1}" = "info" ]; then
@@ -87,7 +85,7 @@ msg() {
 	elif [ "${1}" = "debug" ]; then
 		[ "$opLog" -eq 1 ] && printf "%s\n" "${fade}(<>) Debug : ${2} ${resetColour}"
 	else
-		printf "%s\n" "${red}(!!) Error: ${1} is not recognised for msg() ${resetColour}" && exit 1
+		printf "%s\n" "${red}(!!) Error: ${1} is not recognised for msg() ${resetColour}" ; exit 1
 	fi
 }
 
@@ -107,8 +105,10 @@ fi
 
 # Setting default configuration
 
-readonly defaultRepo=https://github.com/void-linux/void-packages
-readonly repoAbyssPackages=https://codeberg.org/mobinmob/abyss-packages
+defaultRepo=https://github.com/void-linux/void-packages
+readonly defaultRepo
+repoAbyssPackages=https://codeberg.org/mobinmob/abyss-packages
+readonly repoAbyssPackages
 defaultRepoDir=$(rdlast="${defaultRepo%/}"; rdfirst="${rdlast%/*}"; printf '_%s_%s\n' "${rdfirst##*/}" "${rdlast##*/}")
 readonly defaultRepoDir
 [ -n "$CONF_WORKDIR" ] && confWorkdir="$CONF_WORKDIR" && msg info "Using $confWorkdir as working directory."
@@ -121,8 +121,13 @@ logFile="$confLogDir/${0##*/}_$(date +"%Y%m%d_%H%M%S").log"
 # Check for needed dirs.
 [ ! -e "$confLogDir" ] && mkdir -p "$confLogDir"
 readonly logFile
-mergedDir=$(mktemp -d "${TMPDIR:-/tmp}/xutXXXX.merged")
-trap 'rm -rf -- "$mergedDir"' EXIT INT TERM
+XUT_TMP="${XUT_TMPDIR:-/tmp}/xut_tmp" # Use tmpfs for hotspots, adjust if user has XUT_TMPDIR set.
+templatesCache="$XUT_TMP/templates"
+mkdir -p "$XUT_TMP/templates" || msg error "Cannot create tmpfs workspace $XUT_TMP/templates"
+# Merged templates directory
+mergedDir=$(mktemp -d "${XUT_TMPDIR:-/tmp}/merged.XXXXXX") || msg error "Cannot create $mergedDir"
+# Cleanup on exit
+trap 'rm -rf "$mergedDir" ""$XUT_TMP/templates""' EXIT INT TERM
 }
 
 usage() {
@@ -219,9 +224,6 @@ retrieve_repos() {
 			msg debug "$repo already exists in $repodir !"
 		fi
 	done
-
-	# Remove all non-upstream repo from the void-packages clone to start from scratch
-	git -C "$confWorkdir/$defaultRepoDir" restore .
 }
 
 sync_repos() {
@@ -234,7 +236,7 @@ sync_repos() {
 		default_branch=$(git -C "$confWorkdir/$repodir" symbolic-ref --short refs/remotes/origin/HEAD | sed 's|origin/||')
 		git -C "$confWorkdir/$repodir" checkout "$default_branch" || msg error "Cannot switch to $default_branch. Probably uncommitted changes on $currentBranch?"
 		msg debug "Switched to $default_branch"
-		git -C "$confWorkdir/$repodir" pull "$repo" "$default_branch" || msg error "Cannot sync to $repo"
+		git -C "$confWorkdir/$repodir" pull "$repo"  || msg error "Cannot sync to $repo"
 		msg info "$repo synced"
 	done
 	opIntegrate=1
@@ -272,9 +274,9 @@ should_copy_template() {
 merge_xtra_templates() {
 	# First remove all templates lists
 	if [ "$opLog" -eq 0 ]; then
-		rm -f "$confWorkdir"/templates_* "$confWorkdir"/*_templates
+		rm -f "$templatesCache"/templates_* "$confWorkdir"/*_templates
 	else
-		rm -v "$confWorkdir"/templates_* "$confWorkdir"/*_templates 2>/dev/null
+		rm -v "$templatesCache"/templates_* "$confWorkdir"/*_templates 2>/dev/null
 	fi
 	# Merge all available template directories to a temporary directory,
 	# With intelligent version-based conflict resolution.
@@ -290,7 +292,7 @@ merge_xtra_templates() {
 			msg debug "Searching in $searchPath"
 			# Create xtra repo templates list
 			# Show progress during template processing
-			create_template_list "$searchPath" "$confWorkdir/templates_$repoName"
+			create_template_list "$searchPath" "$templatesCache/templates_$repoName"
 			processed=0
 			# Process templates
 			for template in "$searchPath"/*/template; do
@@ -310,32 +312,30 @@ merge_xtra_templates() {
 			printf "\n"
 		else
 			# create template list for $defaultRepo
-			create_template_list "$confWorkdir/_void-linux_void-packages/srcpkgs" "$confWorkdir"/void_templates
+			create_template_list "$confWorkdir/$defaultRepoDir/srcpkgs" "$templatesCache"/void_templates
 		fi
 	done
 	# Create template list for restricted packages, in order to include them in update discovery and updates.
-	grep -lr "restricted=yes" "$confWorkdir/$defaultRepoDir/srcpkgs/" | awk -F '/' '{print $(NF-1)}' >"$confWorkdir/templates_restricted-packages"
+	grep -lr "restricted=yes" "$confWorkdir/$defaultRepoDir/srcpkgs/" | awk -F '/' '{print $(NF-1)}' >"$templatesCache/templates_restricted-packages"
 }
 
 update_template_list() {
 	# Update all templates list
 	msg debug "Creating list of templates (This will take a while)"
-	[ ! -r "$confWorkdir/templates_restricted-packages" ] && merge_xtra_templates # ensure lists exist
-	create_template_list "$confWorkdir/$defaultRepoDir/srcpkgs/" "$confWorkdir"/all_templates_source
-	: > "$confWorkdir/xtra_templates_source" 
-	for list in "$confWorkdir"/templates_*; do
-		[ -f "$list" ] && cat "$list" >>"$confWorkdir"/xtra_templates_source
-	done
+	[ ! -r "$templatesCache/templates_restricted-packages" ] && merge_xtra_templates # ensure lists exist
+	create_template_list "$confWorkdir/$defaultRepoDir/srcpkgs/" "$templatesCache"/all_templates_source
+	: > "$templatesCache/xtra_templates_source" 
+	cat "$templatesCache"/templates_* >>"$templatesCache"/xtra_templates_source
 	# Sort/uniq in one step
-    sort -u "$confWorkdir/xtra_templates_source" > "$confWorkdir/xtra_templates"
-    sort -u "$confWorkdir/all_templates_source" > "$confWorkdir/all_templates"
+    sort -u "$templatesCache/xtra_templates_source" > "$templatesCache/xtra_templates"
+    sort -u "$templatesCache/all_templates_source" > "$templatesCache/all_templates"
     # Cleanup
-    rm -f "$confWorkdir/xtra_templates_source" "$confWorkdir/all_templates_source"
+    rm -f "$templatesCache/xtra_templates_source" "$templatesCache/all_templates_source"
     msg debug "Template merge completed."
 	msg info "
-	templates in void-packages: $(wc -w < "$confWorkdir"/void_templates)
-	xtra templates: $(wc -w < "$confWorkdir"/xtra_templates) (Not unique)
-	Available templates: ${green}${bold}$(wc -w < "$confWorkdir"/all_templates)${resetColour}
+	templates in void-packages: $(wc -l < "$templatesCache"/void_templates)
+	xtra templates: $(wc -l < "$templatesCache"/xtra_templates) (Not unique)
+	Available templates: ${green}${bold}$(wc -l < "$templatesCache"/all_templates)${resetColour}
 	"
 }
 
@@ -347,7 +347,7 @@ integrate_xtra_templates() {
 		# Remove original directories from void-packages to avoid stale patches
 		msg debug "Cleaning older package directories from void-packages"
 		for mergedPkg in "$mergedDir"/*; do
-			pkgName="${mergedPkg##*/}"
+			pkgName=${mergedPkg##*/}
 			originalPkg="$confWorkdir/$defaultRepoDir/srcpkgs/$pkgName"
 			if [ -d "$originalPkg" ]; then
 				msg debug "Removing old package directory: $pkgName"
@@ -367,7 +367,6 @@ integrate_xtra_templates() {
 xbps_src_command() {
 	# Give xbps-src commands directly to the merged repository.
 	cd "$confWorkdir/$defaultRepoDir" || msg error "Cannot change directory into $defaultRepoDir"
-	./xbps-src clean || msg error "Cannot execute <xbps-src clean>."
 	[ -n "$opXbpsSrc" ] || msg error "No xbps-src arguments!"
 	./xbps-src "$opXbpsSrc" || msg error "Cannot execute <xbps-src $opXbpsSrc>"
 	msg info "[./xbps-src $opXbpsSrc] executed successfully!" && exit 0
@@ -375,13 +374,13 @@ xbps_src_command() {
 
 search_templates() {
 	# Update template_list if not exist
-	if [ ! -f "$confWorkdir"/all_templates ]; then
+	if [ ! -f "$templatesCache"/all_templates ]; then
 		update_template_list
 	fi
 
 	msg info "Searching for <$templateQuery> ..."
 	found=0
-	for file in "$confWorkdir"/templates_* "$confWorkdir"/void_templates; do
+	for file in "$templatesCache"/templates_* "$templatesCache"/void_templates; do
 		[ ! -f "$file" ] && continue
 		if grep -q "$templateQuery" "$file"; then
 			found=1
@@ -403,27 +402,59 @@ search_templates() {
 }
 
 discover_updates() {
-	# Compare versions of available templates to these of installed
-	# packages and create a list of packages to update.
-	msg info "Checking for updatable packages..."
-	: > "$confWorkdir"/xtra_templates # clean the file
-	for list in "$confWorkdir"/templates_*; do
-		cat "$list" >>"$confWorkdir"/xtra_templates
-	done
-	xtraTemplates="$(cat "$confWorkdir"/xtra_templates | tr "\n" " ")"
-	for template in $xtraTemplates; do
-		msg debug "Checking $template"
-		if xbps-query -p pkgname "$template" >/dev/null; then
-			templatesToCheck="$templatesToCheck $template"
-		fi
-	done
-	for template in $templatesToCheck; do
-		msg debug "Comparing versions of $template"
-		templateVersion=$(extract_verrev "$confWorkdir/$defaultRepoDir/srcpkgs/$template"/template)
-		installedVersion=$(xbps-query -p pkgver "$template" | sed "s/$template-//g")
-		xbps-uhelper cmpver "$installedVersion" "$templateVersion"
-		[ "$?" = 255 ] && templatesToUpdate="$templatesToUpdate $template"
-	done
+    msg info "Checking for updatable packages..."
+    # Ensure template list exists
+    [ ! -r "$templatesCache/templates_restricted-packages" ] && merge_xtra_templates
+    # Build list of xtra templates in memory (fast)
+    xtraTemplatesFile="$templatesCache/xtra_templates"
+    : >"$xtraTemplatesFile"
+	cat "$templatesCache"/templates_* >>"$xtraTemplatesFile"
+    # Normalize list (unique, sorted)
+    sort -u "$xtraTemplatesFile" -o "$xtraTemplatesFile"
+     
+    
+    # BULK LOAD ALL INSTALLED PACKAGES AT ONCE
+    # This replaces thousands of individual xbps-query calls.
+    # Format: pkgname-version_rev
+    installedPkgsFile="$templatesCache/installed_pkgs.cache"
+    xbps-query -l | awk '{print $2}' >"$installedPkgsFile"
+ 
+    # 2. Build a lookup table of installed versions
+    # Format: "pkgname|version_rev"
+    installedLookup="$templatesCache/installed_lookup.cache"
+    : >"$installedLookup"
+     while IFS= read -r full; do
+        pkg="${full%%-*}"                # strip version
+        verrev="${full#"$pkg"-}"         # strip name → leave version
+        printf "%s|%s\n" "$pkg" "$verrev" >>"$installedLookup"
+    done <"$installedPkgsFile"
+ 
+    
+    #Compare installed versions vs template versions
+
+    while IFS= read -r template; do
+        # Only consider templates installed on the system
+        # lookup installed version quickly
+        inst=$(grep -m1 "^$template|" "$installedLookup" | cut -d'|' -f2)
+        [ -z "$inst" ] && continue
+ 
+        # Template path
+        tpl="$confWorkdir/$defaultRepoDir/srcpkgs/$template/template"
+        [ -f "$tpl" ] || continue
+ 
+        # Template version from cached extract_verrev()
+        tpl_ver=$(extract_verrev "$tpl")
+ 
+        # Compare versions
+        xbps-uhelper cmpver "$inst" "$tpl_ver" >/dev/null 2>&1
+        case $? in
+            255)
+                templatesToUpdate="$templatesToUpdate $template"
+                ;;
+        esac
+    done <"$xtraTemplatesFile"
+ 
+    export templatesToUpdate
 }
 
 update_packages() {
@@ -478,7 +509,6 @@ build_packages() {
 }
 
 install_packages() {
-	
 	opBuild=1 && build_packages
 	#shellcheck disable=SC2086
 	if [ -n "$packages" ] && xi $packageList; then
@@ -502,13 +532,11 @@ main() {
 }
 
 set_colours
-root_check
 set_default_vars
 set_default_configuration
-
+root_check
 
 # Keep at least 5 log files, including the current one.
-#[ "$opLog" -eq 1 ] && 
 find "$confLogDir" -name "xut_*.log" -print | sort -r | awk 'NR>5' | xargs rm -f
 
 
@@ -520,11 +548,11 @@ while getopts "slhudb:i:x:q:" OPTION; do
 			usage
 			exit 0
 			;;
-		d) opLog=1 && set -x ;;
-		b) packages="$OPTARG" && opBuild=1 ;;
-		i) packages="$OPTARG" && opInstall=1 ;;
-		x) opXbpsSrc="$OPTARG" && xbps_src_command ;;
-		q) templateQuery="$OPTARG" && opQuery=1 ;;
+		d) opLog=1; set -x ;;
+		b) packages="$OPTARG"; opBuild=1 ;;
+		i) packages="$OPTARG"; opInstall=1 ;;
+		x) opXbpsSrc="$OPTARG"; xbps_src_command ;;
+		q) templateQuery="$OPTARG"; opQuery=1 ;;
 		u) opUpdate=1 ;;
 		*)
 			usage
@@ -536,7 +564,7 @@ done
 # Capture all the arguments given
 showargs="$(printf "%s" "$*")"
 shift $((OPTIND - 1))
-[ "$OPTIND" = 1 ] && usage && exit
+[ "$OPTIND" = 1 ] && usage
 if [ "$opLog" -eq 1 ]; then
 	main 2>&1 | tee -- "$logFile"
 else
