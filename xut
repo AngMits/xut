@@ -23,20 +23,9 @@ root_check() {
 set_colours() {
 	# Set colour codes and provide fallback
 	if command -v tput >/dev/null 2>&1 && [ -z "${NO_COLOR+x}" ] && [ -t 0 ]; then # make tput(1) optional, respect $NO_COLOR
-		green=$(tput setaf 2)
-		red=$(tput setaf 1)
-		yellow=$(tput setaf 3)
-		fade=$(tput dim)
-		bold=$(tput bold)
-		resetColour=$(tput sgr0)
-	else
-		green=""
-		red=""
-		yellow=""
-		fade=""
-		bold=""
-		resetColour=""
-	fi
+		green=$(tput setaf 2);red=$(tput setaf 1);yellow=$(tput setaf 3)
+		fade=$(tput dim);bold=$(tput bold);resetColour=$(tput sgr0)
+	else green="";red="";yellow="";fade="";bold="";resetColour="";fi
 }
 
 set_default_vars() {
@@ -186,35 +175,6 @@ extract_verrev() {
     ' "$1"
 }
 
-cmpver() {
-	# Compare ${1} and ${2} as version strings.
-    awk -v a="$1" -v b="$2" '
-        function norm(s) {
-            gsub(/[._-]/, " ", s)
-            return s
-        }
-        BEGIN {
-            # Normalize delimiters
-            a = norm(a)
-            b = norm(b)
-
-            na = split(a, A, " ")
-            nb = split(b, B, " ")
-            n  = (na > nb ? na : nb)
-
-            for (i = 1; i <= n; i++) {
-                xa = (i <= na ? A[i] + 0 : 0)
-                xb = (i <= nb ? B[i] + 0 : 0)
-
-                if (xa < xb) exit 2
-                if (xa > xb) exit 0
-            }
-
-            exit 1   # equal
-        }
-    '
-}
-
 include_additional_repos() {
 	# Add all repos to a list, repoAbyssPackages is last
 	reposList="$defaultRepo"
@@ -273,9 +233,9 @@ should_copy_template() {
 	srcVer=$(extract_verrev "$sourceTemplate")
 	destVer=$(extract_verrev "$destTemplate")
 	msg debug "Comparing: $sourceTemplateName($srcVer) vs $destTemplateName($destVer)"
-	cmpver  "$destVer" "$srcVer"
+	xbps-uhelper cmpver "$destVer" "$srcVer"
 	# If source is newer
-	if [ "$?" -eq 2 ]; then
+	if [ "$?" -eq 255 ]; then
 		msg info "... $templateName ${green}${bold}$srcVer${resetColour}"
 		return 0
 	fi
