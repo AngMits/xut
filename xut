@@ -152,15 +152,17 @@ find_repodir() {
 
 create_template_list() {
 	# Creates a newline-separated list of template directory names that exist under
-	# ${1} and stores it in ${2}
+	# ${1} and stores it in ${2}. Checks if dirs contain template files.
 	msg debug "Creating template list for ${1} in ${2}..."
-    dir="$1"
+	dir="$1"
     out="$2"
-    : > "$out"  # empty file
-
-    for d in "$dir"/*; do
-        [ -d "$d" ] || continue
-        printf "%s\n" "${d##*/}" >> "$out"
+    [ -d "$dir" ] || msg error "Directory $dir does not exist!"
+    : > "$out"
+    # Loop over possible template files
+    for tpl in "$dir"/*/template; do
+        [ -f "$tpl" ] || continue
+        pkgdir="${tpl%/template}"
+        printf "%s\n" "${pkgdir##*/}" >> "$out"
     done
 }
 
