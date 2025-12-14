@@ -186,6 +186,14 @@ include_additional_repos() {
 	reposList="$defaultRepo"
 	#shellcheck disable=SC2154
 	for xtraRepo in $additional_repos; do
+		case "$xtraRepo" in
+            http://*|https://*) ;;
+            *)
+                msg error "Invalid repo entry: '$xtraRepo'
+Each repo must be a URL beginning with http:// or https://
+Fix your 'additional_repos' configuration."
+                ;;
+        esac
 		reposList="$reposList $xtraRepo"
 	done
 	reposList="$reposList $repoAbyssPackages"
@@ -213,7 +221,7 @@ sync_repos() {
 		find_repodir "$repo"
 		msg debug "Syncing $repo..."
 		currentBranch=$(git -C "$confWorkdir/$repodir" symbolic-ref --short HEAD 2>/dev/null)
-		default_branch=$(git -C "$confWorkdir/$repodir" symbolic-ref --short refs/remotes/origin/HEAD | sed 's|origin/||')
+		default_branch=$(git -C "$confWorkdir/$repodir" symbolic-ref --short refs/remotes/origin/HEAD | sed 's|origin/||') # that is not 100% correct, should fix
 		git -C "$confWorkdir/$repodir" checkout "$default_branch" || msg error "Cannot switch to $default_branch. Probably uncommitted changes on $currentBranch?"
 		msg debug "Switched to $default_branch"
 		git -C "$confWorkdir/$repodir" pull "$repo"  || msg error "Cannot sync to $repo"
