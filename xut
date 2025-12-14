@@ -502,7 +502,11 @@ set_default_configuration
 root_check
 
 # Keep at least 5 log files, including the current one.
-find "$confLogDir" -name "xut_*.log" -print | sort -r | awk 'NR>5' | xargs rm -f
+find "$confLogDir" -name "xut_*.log" | sort -r | awk 'NR>5 {print}' | while IFS= read -r file; do
+    rm -f "$file"; done
+
+# Capture all the arguments given
+showargs="$(printf "%s" "$*")"
 
 while getopts "slhudb:i:x:q:" OPTION; do
 	case "${OPTION}" in
@@ -514,17 +518,13 @@ while getopts "slhudb:i:x:q:" OPTION; do
 		x) opXbpsSrc="$OPTARG"; xbps_src_command ;;
 		q) templateQuery="$OPTARG"; opQuery=1 ;;
 		u) opUpdate=1 ;;
-		h) usage;;
+		h) usage ; exit 0;;
 		*) usage ; exit 1;;
 	esac
 done
-
-# Capture all the arguments given
-showargs="$(printf "%s" "$*")"
-shift $((OPTIND - 1))
-[ "$OPTIND" = 1 ] && 
-	msg warn "Nothing to do, plesse provide an argument. 
-Use -h for choices!" && exit
+# Check for empty args
+[ -z "$*" ] && \
+ msg warn "Nothing to do, please provide an argument. Use -h for choices!" && exit
 if [ "$opLog" -eq 1 ]; then
 	main 2>&1 | tee "$logFile"
 else
