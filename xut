@@ -50,6 +50,7 @@ set_default_vars() {
 
 distribution_sanity_check() {
 	# Disable install and update when run in a non-Void distribution
+	#shellcheck disable=SC1091
 	[ -r /etc/os-release ] && . /etc/os-release
 	if [ -z "$NAME" ] || [ "$NAME" != "Void" ]; then
 		opUpdate=0; opInstall=0; opForeignHost=1
@@ -116,29 +117,32 @@ set_default_configuration() {
 
 usage() {
 	# Display basic tui information
-	cat <<-EOH
-		xut $xutVersion
-		Usage: xut [options]
+	printf "%s\n" "${green}${bold}
+            _   
+__  ___   _| |_ 
+\ \/ / | | | __|
+ >  <| |_| | |_ 
+/_/\_\\__,_|\__| ${resetColour}"
+printf "%s\n" "${yellow}${bold}
+*x*tra *u*ser *t*emplates
+Build and install packages for Void Linux, from unofficial abyss-packages template repo.
+Version: $xutVersion
+Usage: xut [options] ${resetColour}"
+printf "%s\n" "${bold}
+OPTIONS
+ -s                      Sync the repos.
+ -l                      Keep a log file under $confLogDir.
+ -h                      Display this usage information.
+ -d						 Enable debugging and logging output.
+ -b <package1,package2>  Build a list of (comma-separated) packages.
+ -i <package1,package2>  Build and install a list of (comma-separated) packages.
+ -x                      Give xbps-src commands.
+ -q <query>              Search for <query> in available templates.
+ -u                      Update packages.
 
-		*x*tra *u*ser *t*emplates
-		Build and install packages for Void Linux, from the abyss-packages unofficial repo
-
-		OPTIONS
-		 -s                      Sync the repos.
-		 -l                      Keep a log file under $confLogDir.
-		 -h                      Display this usage information.
-		 -d						 Enable debugging and logging output.
-		 -b <package1,package2>  Build a list of (comma-separated) packages.
-		 -i <package1,package2>  Build and install a list of (comma-separated) packages.
-		 -x                      Give xbps-src commands.
-		 -q <query>              Search for <query> in available templates.
-		 -u                      Update packages.
-
-		 The options are given together. For example in order to sync,
-		 enable logging and install <package> the cli command is
-		 <xut -sli package>.
-
-	EOH
+	 The options are given together. For example in order to sync,
+	 enable logging and install <package> the cli command is
+	 <xut -sli package>.${resetColour}"
 }
 
 find_repodir() {
@@ -148,15 +152,17 @@ find_repodir() {
 
 create_template_list() {
 	# Creates a newline-separated list of template directory names that exist under
-	# ${1} and stores it in ${2}
+	# ${1} and stores it in ${2}. Checks if dirs contain template files.
 	msg debug "Creating template list for ${1} in ${2}..."
-    dir="$1"
+	dir="$1"
     out="$2"
-    : > "$out"  # empty file
-
-    for d in "$dir"/*; do
-        [ -d "$d" ] || continue
-        printf "%s\n" "${d##*/}" >> "$out"
+    [ -d "$dir" ] || msg error "Directory $dir does not exist!"
+    : > "$out"
+    # Loop over possible template files
+    for tpl in "$dir"/*/template; do
+        [ -f "$tpl" ] || continue
+        pkgdir="${tpl%/template}"
+        printf "%s\n" "${pkgdir##*/}" >> "$out"
     done
 }
 
@@ -180,6 +186,14 @@ include_additional_repos() {
 	reposList="$defaultRepo"
 	#shellcheck disable=SC2154
 	for xtraRepo in $additional_repos; do
+		case "$xtraRepo" in
+            http://*|https://*) ;;
+            *)
+                msg error "Invalid repo entry: '$xtraRepo'
+Each repo must be a URL beginning with http:// or https://
+Fix your 'additional_repos' configuration."
+                ;;
+        esac
 		reposList="$reposList $xtraRepo"
 	done
 	reposList="$reposList $repoAbyssPackages"
@@ -207,7 +221,7 @@ sync_repos() {
 		find_repodir "$repo"
 		msg debug "Syncing $repo..."
 		currentBranch=$(git -C "$confWorkdir/$repodir" symbolic-ref --short HEAD 2>/dev/null)
-		default_branch=$(git -C "$confWorkdir/$repodir" symbolic-ref --short refs/remotes/origin/HEAD | sed 's|origin/||')
+		default_branch=$(git -C "$confWorkdir/$repodir" symbolic-ref --short refs/remotes/origin/HEAD | sed 's|origin/||') # that is not 100% correct, should fix
 		git -C "$confWorkdir/$repodir" checkout "$default_branch" || msg error "Cannot switch to $default_branch. Probably uncommitted changes on $currentBranch?"
 		msg debug "Switched to $default_branch"
 		git -C "$confWorkdir/$repodir" pull "$repo"  || msg error "Cannot sync to $repo"
@@ -305,9 +319,9 @@ generate_all_template_lists() {
     for file in "$templatesCache"/templates_*; do
         [ -r "$file" ] && cat "$file" >>"$xtra"
     done
-
+	
     # unique + sorted (portable)
-    tmp=$(mktemp)
+	tmp=$(mktemp) || msg error "Failed to create temp file"
     sort -u "$xtra" >"$tmp"
     mv "$tmp" "$xtra"
 	
@@ -392,7 +406,7 @@ discover_updates() {
 	#Build list of templates to be updated
 	toBeUpdated="$templatesCache/toBeUpdated"
 	: >"$toBeUpdated"
-	xbps-checkvers -I -D "$confWorkdir/$defaultRepoDir/" -f %\n \
+	xbps-checkvers -I -D "$confWorkdir/$defaultRepoDir/" -f %n \
      >"$toBeUpdated"
 	tmp2=$(mktemp)
 	sort -u "$toBeUpdated" >"$tmp2"
@@ -439,12 +453,12 @@ build_packages() {
 	# Start package build
 	prepare_for_build
 	packageList="$(echo "$packages" | tr ',' ' ')"
-	export packageList="$packageList"
-	# Check if the first package is an argument
-	set -- "$packageList"
-	for first in i u x h q; do
-		if [ "${1}" = "$first" ]; then
-		msg error "${1} is wrong, expecting a package name not an argument!"; fi ;done
+	export packageList
+	# Check if templates exist - provide a better message than the
+	# xbps-src one. Usefull when args are given as OPTARG by mistake (e.g. xut -sbl).
+	for template in $packageList; do
+		if [ ! -d "$confWorkdir"/"$defaultRepoDir"/srcpkgs/"$template" ]; then
+		msg error "[$template] is wrong, expecting a package name!"; fi ;done
 	for package in $packageList; do
 		cd "$confWorkdir"/"$defaultRepoDir" && ./xbps-src pkg -E "$package"
 		cmdStatus=$?
@@ -488,7 +502,11 @@ set_default_configuration
 root_check
 
 # Keep at least 5 log files, including the current one.
-find "$confLogDir" -name "xut_*.log" -print | sort -r | awk 'NR>5' | xargs rm -f
+find "$confLogDir" -name "xut_*.log" | sort -r | awk 'NR>5 {print}' | while IFS= read -r file; do
+    rm -f "$file"; done
+
+# Capture all the arguments given
+showargs="$(printf "%s" "$*")"
 
 while getopts "slhudb:i:x:q:" OPTION; do
 	case "${OPTION}" in
@@ -500,17 +518,15 @@ while getopts "slhudb:i:x:q:" OPTION; do
 		x) opXbpsSrc="$OPTARG"; xbps_src_command ;;
 		q) templateQuery="$OPTARG"; opQuery=1 ;;
 		u) opUpdate=1 ;;
-		h) usage;;
+		h) usage ; exit 0;;
 		*) usage ; exit 1;;
 	esac
 done
-
-# Capture all the arguments given
-showargs="$(printf "%s" "$*")"
 shift $((OPTIND - 1))
-[ "$OPTIND" = 1 ] && 
-	msg warn "Nothing to do, plesse provide an argument. 
-Use -h for choices!" && exit
+# Check for empty args
+[ "$OPTIND" -eq 1 ] && usage && \
+ msg warn "Nothing to do, please provide an argument!
+		See OPTIONS above." && exit 1
 if [ "$opLog" -eq 1 ]; then
 	main 2>&1 | tee "$logFile"
 else
