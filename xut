@@ -185,13 +185,13 @@ include_additional_repos() {
 	# Add all repos to a list, repoAbyssPackages is last
 	reposList="$defaultRepo"
 	#shellcheck disable=SC2154
-	for xtraRepo in $additional_repos; do
+	for xtraRepo in $additionalRepos; do
 		case "$xtraRepo" in
             http://*|https://*) ;;
             *)
                 msg error "Invalid repo entry: '$xtraRepo'
 Each repo must be a URL beginning with http:// or https://
-Fix your 'additional_repos' configuration."
+Fix your 'additionalRepos' configuration."
                 ;;
         esac
 		reposList="$reposList $xtraRepo"
