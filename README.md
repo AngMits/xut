@@ -2,9 +2,10 @@
 
 Installs and updates unofficial packages for Void Linux.
 
-_Created and tested for/with the [abyss-packages repo](https://codeberg.org/mobinmob/abyss-packages),
- working with other repos is not guaranteed._
-
+_Created and tested for/with the [abyss-packages repo](https://codeberg.org/mobinmob/abyss-packages)._
+_Working with other unofficial repos is supported partially. Code contributions, testing and general
+coordination is highly appreciated!_
+ 
 **This script is in the alpha stage.**
 
 ### Why and how
