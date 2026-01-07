@@ -279,49 +279,56 @@ should_copy_template() {
 merge_xtra_templates() {
 	# Merge all available template directories to a temporary directory,
 	# With intelligent version-based conflict resolution.
-	
-	for repo in $reposList; do
-		find_repodir "$repo"
-		repoName="${repo##*/}"
-		if [ "$repo" = "$defaultRepo" ]; then
-			default_branch=$(git -C "$confWorkdir/$repodir" symbolic-ref --short refs/remotes/origin/HEAD \
-			 | sed 's|origin/||')
-			git -C "$confWorkdir/$repodir" checkout "$default_branch" \
-			 || msg error "Cannot switch to $default_branch. Probably uncommitted changes on $currentBranch?"
+    for repo in $reposList; do
+        find_repodir "$repo"
+        repoName="${repo##*/}"
+
+        if [ "$repo" = "$defaultRepo" ]; then
+            default_branch=$(git -C "$confWorkdir/$repodir" symbolic-ref --short refs/remotes/origin/HEAD \
+             | sed 's|origin/||')
+            git -C "$confWorkdir/$repodir" checkout "$default_branch" \
+             || msg error "Cannot switch to $default_branch"
 			# Create template lists from a clean checkout.
-			git -C  "$confWorkdir/$repodir" clean -fd > /dev/null 2>&1 || msg error "Cannot clean $confWorkdir/$repodir repo."
-			xbps-checkvers -s -D "$confWorkdir/$defaultRepoDir" -f %n | sort > "$templatesCache"/void_templates
+            git -C "$confWorkdir/$repodir" clean -fd >/dev/null 2>&1  \
+            || msg error "Cannot clean $confWorkdir/$repodir"
+            xbps-checkvers -s -D "$confWorkdir/$defaultRepoDir" -f %n \
+            | sort > "$templatesCache"/void_templates
 			# Create template list for restricted packages, in order to include them in update discovery and updates.
-			grep -lr "restricted=yes" "$confWorkdir/$defaultRepoDir/srcpkgs/" | awk -F '/' '{print $(NF-1)}' >"$templatesCache/templates_restricted-packages"
-		else
-			msg info "Merging templates from ${green}${bold}$repo${resetColour}"
-			searchPath="$confWorkdir/$repodir"
-			if [ -d "$confWorkdir/$repodir/srcpkgs" ]; then
-				searchPath="$confWorkdir/$repodir/srcpkgs"
-			fi
-			msg debug "Searching in $searchPath"
-			# Create xtra repo templates list
-			# Show progress during template processing
-			create_template_list "$searchPath" "$templatesCache/templates_$repoName"
-			processed=0
-			# Process templates
-			find "$searchPath" -maxdepth 2 -type f -name template | while IFS= read -r template; do
-				[ -f "$template" ] || continue
-    			dir="${template%/template}"
-				processed=$((processed + 1))
-				printf "\r%5d " "$processed"
-				templateName="${dir##*/}"
-				sourceTemplate="$dir/template"
-				destTemplate="$confWorkdir/$defaultRepoDir/srcpkgs/$templateName/template"
-				if should_copy_template "$sourceTemplate" "$destTemplate"; then
-					# Remove from mergedDir if it already exists
-					[ -d "$mergedDir/$templateName" ] && rm -rf "${mergedDir:?}/$templateName"
-					cp -r "$dir" "$mergedDir" || msg error "Cannot merge templates"
-				fi
-			done
-			printf "\n"
-		fi
-	done
+            grep -lr "restricted=yes" "$confWorkdir/$defaultRepoDir/srcpkgs/" \
+             | awk -F '/' '{print $(NF-1)}' > "$templatesCache/templates_restricted-packages"
+            continue
+        fi
+
+        msg info "Merging templates from ${green}${bold}$repo${resetColour}"
+        searchPath="$confWorkdir/$repodir"
+        [ -d "$searchPath/srcpkgs" ] && searchPath="$searchPath/srcpkgs"
+        msg debug "Searching in $searchPath"
+		# Create xtra repo templates list
+		# Show progress during template processing
+        create_template_list "$searchPath" "$templatesCache/templates_$repoName"
+
+        processed=0
+		# Process templates
+        # POSIX-safe: loop over directories, follow symlinks
+        for dir in "$searchPath"/*; do
+            [ -d "$dir" ] || continue          # skip non-directories
+            [ -e "$dir/template" ] || continue  # skip dirs without template
+
+            templateName="${dir##*/}"
+            sourceTemplate="$dir/template"
+            destTemplate="$confWorkdir/$defaultRepoDir/srcpkgs/$templateName/template"
+
+            processed=$((processed + 1))
+            printf "\r%5d " "$processed"
+
+            if should_copy_template "$sourceTemplate" "$destTemplate"; then
+            	# Remove from mergedDir if it already exists
+                [ -d "$mergedDir/$templateName" ] && rm -rf "${mergedDir:?}/$templateName"
+                cp -r "$dir" "$mergedDir" || msg error "Cannot merge templates"
+            fi
+        done
+        printf "\n"
+    done
 }
 
 
