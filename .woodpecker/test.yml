@@ -45,5 +45,5 @@ steps:
         su tester -c "
           export SHELLSPEC_TMPDIR=$(pwd)/.shellspec-tmp
           mkdir -p \$SHELLSPEC_TMPDIR
-          shellspec $(pwd)/spec/xut_spec.sh --color --format documentation
+          shellspec $(pwd)/spec/xut_script_spec.sh --color --format documentation
         "
