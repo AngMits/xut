@@ -17,7 +17,7 @@ Describe 'xut basic usage'
   It 'Help should be displayed when run with -h argument'
     When run script ./xut -h
     The stdout should include 'OPTIONS'
-    The status should be failure
+    The status should be success
   End
 
 End
