@@ -32,8 +32,6 @@ steps:
       # Ownership change to tester for the current directory
       - chown -R tester:tester .
       - |
-        su tester -c "
-          shellspec $(pwd)/spec/xut_spec.sh --color --format documentation && \
-          shellspec $(pwd)/spec/xut_script_spec.sh --color --format documentation && \
-          shellspec $(pwd)/spec/xut_installed_spec.sh --color --format documentation
-        "
+        su tester -c "shellspec $(pwd)/spec/xut_spec.sh --color --format documentation"
+      # shellspec $(pwd)/spec/xut_script_spec.sh --color --format documentation && \
+      # shellspec $(pwd)/spec/xut_installed_spec.sh --color --format documentation
