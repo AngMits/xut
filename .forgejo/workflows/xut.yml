@@ -18,13 +18,10 @@ jobs:
         run: |
           xbps-install -Syu xbps
           xbps-install -yu
-          xbps-install -y git shellcheck shfmt wget nodejs sudo
-          useradd -m -s /bin/sh runner || true
-          echo 'runner ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/runner
-
-      - name: Fix workspace permissions
-        run: |
-          chown -R runner:runner "$FORGEJO_WORKSPACE"
+          xbps-install -y git shellcheck shfmt wget nodejs
+          if ! id -u runner >/dev/null 2>&1; then
+            useradd -m -s /bin/sh runner
+          fi
 
       - uses: actions/checkout@v4
 
@@ -51,10 +48,7 @@ jobs:
         shell: sh
         run: |
           echo "Running tests using path: ${{ env.SHELLSPEC_PATH }}"
-          sudo -u runner -E sh -c '
-            cd "$FORGEJO_WORKSPACE"
-            "$SHELLSPEC_PATH" ./spec/xut_script_spec.sh --color --format documentation
-          '
+          runuser -p -u runner -c 'cd "$FORGEJO_WORKSPACE" && "$SHELLSPEC_PATH" ./spec/xut_script_spec.sh'
 
       - name: Install xut via make
         run:
