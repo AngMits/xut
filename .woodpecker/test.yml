@@ -17,15 +17,15 @@ steps:
       - tar xzf 0.28.1.tar.gz
       - ln -s "$(pwd)/shellspec-0.28.1/shellspec" /usr/local/bin/shellspec
       - ls -la
-      - echo "Creating new user 'developer'..."
+      - echo "Creating new user 'tester'..."
       # Create the user with a home directory
-      - useradd -m developer
-      - echo "developer:password123" > /tmp/user_password.txt
+      - useradd -m tester
+      - echo "tester:password123" > /tmp/user_password.txt
       - chpasswd < /tmp/user_password.txt
       - rm /tmp/user_password.txt # Clean up password file
-      - echo "User 'developer' created successfully."
-      - usermod --shell /bin/sh developer
-      - su -c 'whoami' developer
+      - echo "User 'tester' created successfully."
+      - usermod --shell /bin/sh tester
+      - su -c 'whoami' tester
       - id
       - pwd
       - 'shellspec $(pwd)/spec/xut_spec.sh --color --format documentation'

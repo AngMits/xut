@@ -29,11 +29,11 @@ jobs:
         shell: sh
         run: |
           echo "Starting ShellSpec setup for version ${{ env.SHELLSPEC_VERSION }}"
-          
+
           INSTALL_DIR="/tmp/shellspec_install"
           mkdir -p "$INSTALL_DIR"
           cd "$INSTALL_DIR" || exit 1
-          
+
           wget "https://github.com/shellspec/shellspec/archive/${{ env.SHELLSPEC_VERSION }}.tar.gz" -O shellspec.tar.gz
           tar xzf shellspec.tar.gz
 
