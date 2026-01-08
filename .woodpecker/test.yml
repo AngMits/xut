@@ -11,7 +11,7 @@ steps:
     commands:
       - xbps-install -S
       - xbps-install -uy xbps
-      - xbps-install -y wget make
+      - xbps-install -y wget make git
       - make install
       - wget https://github.com/shellspec/shellspec/archive/0.28.1.tar.gz
       - tar xzf 0.28.1.tar.gz
