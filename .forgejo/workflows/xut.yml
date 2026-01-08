@@ -48,7 +48,7 @@ jobs:
         shell: sh
         run: |
           echo "Running tests using path: ${{ env.SHELLSPEC_PATH }}"
-          runuser -p -u runner -c 'cd "$FORGEJO_WORKSPACE" && "$SHELLSPEC_PATH" ./spec/xut_script_spec.sh'
+          runuser -p runner -c 'cd "$FORGEJO_WORKSPACE" && "$SHELLSPEC_PATH" ./spec/xut_script_spec.sh'
 
       - name: Install xut via make
         run:
