@@ -28,11 +28,19 @@ steps:
       - su -c 'whoami' tester
       - id
       - pwd
+      # Run test as root
       - shellspec $(pwd)/spec/xut_root_spec.sh --color --format documentation
       # Ownership change to tester for the current directory
       - chown -R tester:tester .
       - mkdir -p /tmp/xut_tmp
       - chown -R tester:tester /tmp/xut_tmp
+      # Run tests as user
+      - |
+        su tester -c "
+          export SHELLSPEC_TMPDIR=$(pwd)/.shellspec-tmp
+          mkdir -p \$SHELLSPEC_TMPDIR
+          shellspec $(pwd)/spec/xut_spec.sh --color --format documentation
+        "
       - |
         su tester -c "
           export SHELLSPEC_TMPDIR=$(pwd)/.shellspec-tmp
