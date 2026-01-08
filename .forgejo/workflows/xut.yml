@@ -22,6 +22,10 @@ jobs:
           useradd -m -s /bin/sh runner || true
           echo 'runner ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/runner
 
+      - name: Fix workspace permissions
+        run: |
+          chown -R runner:runner "$FORGEJO_WORKSPACE"
+
       - uses: actions/checkout@v4
 
       - name: Setup ShellSpec
