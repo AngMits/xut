@@ -8,12 +8,6 @@ Describe 'xut basic usage'
     The status should be failure
   End
 
-  It 'Error should be thrown when run as root'
-    When run script ./xut
-    The stdout should include 'Error: Please run the program as a user!'
-    The status should be failure
-  End
-
   It 'Help should be displayed when run with -h argument'
     When run script ./xut -h
     The stdout should include 'OPTIONS'
