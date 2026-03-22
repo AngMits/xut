@@ -29,7 +29,7 @@ steps:
       - chown -R tester:tester /tmp/xut_tmp
       # Run tests as user
       - |
-        export NO_COLOR="yes"
+        export NO_COLOR=yes
         WORKDIR="$(pwd)"
         su tester -c "
           export SHELLSPEC_TMPDIR='$WORKDIR/.shellspec-tmp'
