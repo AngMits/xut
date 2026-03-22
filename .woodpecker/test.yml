@@ -30,16 +30,15 @@ steps:
       # Run tests as user
       - |
         WORKDIR="$(pwd)"
-        su tester -c "
+        runuser -p tester -c "
           export SHELLSPEC_TMPDIR='$WORKDIR/.shellspec-tmp'
           mkdir -p "$SHELLSPEC_TMPDIR"
           cd $WORKDIR
-          export NO_COLOR=yes
           shellspec ./spec/xut_spec.sh --color --format documentation
         "
       - |
         WORKDIR="$(pwd)"
-        su tester -c "
+        runuser -p tester -c "
           export SHELLSPEC_TMPDIR=$(pwd)/.shellspec-tmp
           mkdir -p "$SHELLSPEC_TMPDIR"
           cd $WORKDIR
