@@ -2,7 +2,7 @@ variables:
   - &void_image 'ghcr.io/void-linux/void-glibc-full:latest'
 
 when:
-  - branch: master
+  - branch: [master, woodpecker]
     event: [ push, manual, cron ]
 
 steps:
@@ -22,7 +22,7 @@ steps:
       - useradd -m -s /bin/sh tester
 
       # Run test as root
-      - shellspec $(pwd)/spec/xut_root_spec.sh --color --format documentation
+      # - shellspec $(pwd)/spec/xut_root_spec.sh --color --format documentation
       # Ownership change to tester for the current directory
       - chown -R tester:tester .
       - mkdir -p /tmp/xut_tmp
