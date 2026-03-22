@@ -73,7 +73,7 @@ msg() {
 	elif [ "${1}" = "info" ]; then
 		printf "%s\n" "${green}${bold}(~>) Info:${resetColour}  ${bold}${2} ${resetColour}"
 	elif [ "${1}" = "debug" ]; then
-		[ "$opLog" -eq 1 ] && printf "%s\n" "${fade}(<>) Debug : ${2} ${resetColour}"
+		[ "$opLog" = "1" ] && printf "%s\n" "${fade}(<>) Debug : ${2} ${resetColour}"
 	else
 		printf "%s\n" "${red}(!!) Error: ${1} is not recognised for msg() ${resetColour}" ; exit 1
 	fi
@@ -690,7 +690,7 @@ shift $((OPTIND - 1))
 [ "$OPTIND" -eq 1 ] && usage && \
  msg warn "Nothing to do, please provide an argument!
 		See OPTIONS above." && exit 1
-if [ "$opLog" -eq 1 ]; then
+if [ "$opLog" = "1" ]; then
 	main 2>&1 | tee "$logFile"
 else
 	main
