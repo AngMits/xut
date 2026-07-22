@@ -73,7 +73,7 @@ msg() {
 	elif [ "${1}" = "info" ]; then
 		printf "%s\n" "${green}${bold}(~>) Info:${resetColour}  ${bold}${2} ${resetColour}"
 	elif [ "${1}" = "debug" ]; then
-		[ "$opLog" = "1" ] && printf "%s\n" "${fade}(<>) Debug : ${2} ${resetColour}"
+		[ "$opLog" -eq 1 ] && printf "%s\n" "${fade}(<>) Debug : ${2} ${resetColour}"
 	else
 		printf "%s\n" "${red}(!!) Error: ${1} is not recognised for msg() ${resetColour}" ; exit 1
 	fi
@@ -653,8 +653,8 @@ main() {
 	[ "$opUpdate" -eq 0 ] || update_packages
 	#shellcheck disable=SC2031 
 	#modification in the subshell in build_packages is intended
-	[ "$opQuery" = "0" ] || search_templates
-	[ "$opBuild" = "0" ] || build_packages
+	[ "$opQuery" -eq 0 ] || search_templates
+	[ "$opBuild" -eq 0 ] || build_packages
 	install_packages
 }
 
@@ -687,10 +687,10 @@ while getopts "slhuUdb:i:x:q:" OPTION; do
 done
 shift $((OPTIND - 1))
 # Check for empty args
-[ "$OPTIND" = "1" ] && usage && \
+[ "$OPTIND" -eq 1 ] && usage && \
  msg warn "Nothing to do, please provide an argument!
 		See OPTIONS above." && exit 1
-if [ "$opLog" = "1" ]; then
+if [ "$opLog" -eq 1 ]; then
 	main 2>&1 | tee "$logFile"
 else
 	main
